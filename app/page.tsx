@@ -6,6 +6,7 @@ import ServicesSection from "./components/ServicesSection";
 import HowToBookSection from "./components/HowToBookSection";
 import ApplyCscsSection from "./components/ApplyCscsSection";
 import ContactSection from "./components/ContactSection";
+import Footer from "./components/Footer";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
       <HowToBookSection />
       <ApplyCscsSection />
       <ContactSection />
+      <Footer />
     </>
   );
 }

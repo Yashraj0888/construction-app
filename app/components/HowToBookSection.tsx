@@ -208,37 +208,37 @@ export default function HowToBookSection() {
         {/* Right Column: Copywriting content */}
         <div className="content-col">
           <h2 className="title-main">How to Book Your CITB Test?</h2>
-          <div className="title-sub">CITB Health & Safety Test required for a CSCS Card.</div>
+          <div className="title-sub">Fast-track your CITB Health, Safety & Environment test scheduling online.</div>
           
           <p className="body-desc">
-            <strong>Booking your CITB Health, Safety & Environment Test (commonly known as CITB Touchscreen Test) is easier with Construction Worker Support.</strong>
+            <strong>Scheduling your CITB touchscreen test is simple and efficient. Follow our three-step online guide to secure your official test date at a nearby local center.</strong>
           </p>
 
           <div className="step-list">
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Fill the CITB Test Booking application <a href="#apply" className="step-link">here</a>. Choose your preferred date & test centre.
+                Complete the online booking form <a href="#apply" className="step-link">here</a>, choosing your preferred date, time slot, and test center.
               </div>
             </div>
             
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Review your booking and complete the payment.
+                Review your application details, confirm your contact information, and complete the secure payment.
               </div>
             </div>
             
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                That's it. You will receive the confirmation via email and/or text on your registered email address within a few minutes.
+                Receive your booking confirmation and official test preparation guide instantly via email and text.
               </div>
             </div>
           </div>
 
           <div className="footer-note">
-            Not sure which test to book? Find the correct test according to your occupation <a href="#apply" className="step-link">here</a>.
+            Need help selecting the correct test category? Find the recommended exam for your specific trade <a href="#apply" className="step-link">here</a>.
           </div>
         </div>
       </div>

@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { Mail, MapPin, Phone, RotateCw, Send } from "lucide-react";
+import { z } from "zod";
+
+const contactSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  subject: z.string().optional(),
+  message: z.string().min(10, { message: "Message must be at least 10 characters." }),
+});
 
 export default function ContactSection() {
   const [captchaText, setCaptchaText] = useState("");
@@ -37,10 +45,13 @@ export default function ContactSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
-      setErrorMessage("Please fill in all required fields.");
+
+    const validation = contactSchema.safeParse(formData);
+    if (!validation.success) {
+      setErrorMessage(validation.error.errors[0].message);
       return;
     }
+
     if (captchaInput.toLowerCase() !== captchaText.toLowerCase()) {
       setErrorMessage("Incorrect captcha text. Please try again.");
       generateCaptcha();
@@ -56,7 +67,7 @@ export default function ContactSection() {
   };
 
   return (
-    <section className="bg-white border-t border-slate-200" style={{ paddingTop: "85px", paddingBottom: "85px" }}>
+    <section id="contact" className="bg-white border-t border-slate-200" style={{ paddingTop: "85px", paddingBottom: "85px" }}>
       <style>{`
         .contact-layout {
           max-width: 1024px;
@@ -68,7 +79,7 @@ export default function ContactSection() {
         }
         @media (min-width: 992px) {
           .contact-layout {
-            grid-template-columns: 1.2fr 1.3fr;
+            grid-template-columns: 0.9fr 1.6fr;
             align-items: start;
           }
         }
@@ -82,7 +93,7 @@ export default function ContactSection() {
           font-size: 13px;
           text-transform: uppercase;
           font-weight: 800;
-          color: #f59e0b;
+          color: #2563eb;
           letter-spacing: 0.12em;
           margin-bottom: 12px;
         }
@@ -134,7 +145,7 @@ export default function ContactSection() {
           line-height: 1.5;
         }
         .info-link:hover {
-          color: #f59e0b;
+          color: #2563eb;
         }
         .info-text {
           font-size: 15px;
@@ -188,8 +199,8 @@ export default function ContactSection() {
           outline: none;
         }
         .input-field:focus {
-          border-color: #f59e0b;
-          box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+          border-color: #2563eb;
+          box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
         }
         .input-field::placeholder {
           color: #94a3b8;
@@ -279,8 +290,8 @@ export default function ContactSection() {
           transition: all 0.2s ease;
         }
         .submit-btn:hover {
-          background: #f59e0b;
-          color: #0f172a;
+          background: #2563eb;
+          color: #ffffff;
         }
       `}</style>
 
@@ -298,8 +309,8 @@ export default function ContactSection() {
               </div>
               <div className="info-details">
                 <h3>Say hello</h3>
-                <a href="mailto:support@constructionworkersupport.com" className="info-link">
-                  support@constructionworkersupport.com
+                <a href="mailto:support@constructioncardassistance.co.uk" className="info-link">
+                  support@constructioncardassistance.co.uk
                 </a>
                 <a href="tel:+441135199938" className="info-link" style={{ marginTop: "4px" }}>
                   +44 113 519 9938 <span style={{ color: "#64748b", fontSize: "13px" }}>(Mon-Fri, 9am-5pm)</span>

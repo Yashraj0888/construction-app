@@ -6,28 +6,28 @@ export default function ServicesSection() {
   const services = [
     {
       title: "Apply CSCS Card",
-      description: "Apply For CSCS Card online. CSCS card renewal, or request a replacement for the lost card. The CSCS Card booking is £65 which includes the £36 CSCS fee, booking fee and VAT.",
+      description: "Get your CSCS Card online today. Fast-track application processing, renewals, and replacements for lost cards under one simple dashboard.",
       cta: "Apply Now",
       icon: CreditCard,
-      link: "#cscs",
+      link: "/cscs-cards",
     },
     {
       title: "Book CITB HS&E Test",
-      description: "Book Your CITB Health, Safety & Environment Test at your nearest test centre.",
+      description: "Schedule your CITB Touchscreen Test at a nearby official test centre. Flexible date selection with online study materials.",
       cta: "Book Now",
       icon: ClipboardCheck,
       link: "#citb",
     },
     {
       title: "Construction Course leading to Green Card",
-      description: "Book Your Health & Safety Awareness Course Online or Offline.",
+      description: "Complete your Health & Safety Awareness Course online or in-person. The final step to qualifying for your Green CSCS Card.",
       cta: "Book Now",
       icon: GraduationCap,
       link: "#course",
     },
     {
       title: "Group Book",
-      description: "Book CITB Health & Safety Test, CSCS Cards, and Construction Course leading to Green Card for multiple delegates. Get exclusive discounts!",
+      description: "Coordinate bookings for multiple team members at once. Secure group test dates, card applications, and training with corporate discounts.",
       cta: "Enquire",
       icon: Users,
       link: "#group",
@@ -64,7 +64,7 @@ export default function ServicesSection() {
         .service-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-          border-color: #f59e0b;
+          border-color: #2563eb;
         }
         .service-icon-wrapper {
           width: 56px;
@@ -115,9 +115,9 @@ export default function ServicesSection() {
           border: 1px solid #0f172a;
         }
         .btn-primary:hover {
-          background: #f59e0b;
-          border-color: #f59e0b;
-          color: #0f172a;
+          background: #2563eb;
+          border-color: #2563eb;
+          color: #ffffff;
         }
       `}</style>
       <div className="services-grid">

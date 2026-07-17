@@ -9,18 +9,18 @@ const navLinks = [
     label: "CSCS Cards",
     href: "#",
     dropdown: [
-      { label: "Green Labourer", href: "#" },
-      { label: "Blue Skilled", href: "#" },
-      { label: "Red Provisional", href: "#" },
-      { label: "Gold Advanced Craft", href: "#" },
-      { label: "Gold Supervisor", href: "#" },
-      { label: "Black Manager", href: "#" },
-      { label: "All CSCS Cards", href: "#" },
+      { label: "Green Labourer", href: "/apply-cscs" },
+      { label: "Blue Skilled", href: "/apply-cscs" },
+      { label: "Red Provisional", href: "/apply-cscs" },
+      { label: "Gold Advanced Craft", href: "/apply-cscs" },
+      { label: "Gold Supervisor", href: "/apply-cscs" },
+      { label: "Black Manager", href: "/apply-cscs" },
+      { label: "All CSCS Cards", href: "/apply-cscs" },
     ],
   },
   { label: "Construction Courses", href: "#" },
   { label: "Group Booking", href: "#" },
-  { label: "Contact Us", href: "#" },
+  { label: "Contact Us", href: "/#contact" },
 ];
 
 export default function Navbar() {
@@ -92,11 +92,26 @@ export default function Navbar() {
 
       <div style={{ width: "100%", paddingLeft: "32px", paddingRight: "32px" }}>
         <div className="flex items-center justify-between h-16">
-          <a href="/" className="flex items-center gap-2.5 flex-shrink-0" style={{ textDecoration: "none" }} aria-label="Construction Worker Support - Home">
-            <div className="w-9 h-9 bg-[#0F172A] rounded-lg flex items-center justify-center">
-              <HardHat size={20} className="text-white" aria-hidden="true" />
-            </div>
-            <span className="text-[#0F172A] font-bold text-base leading-tight">Construction</span>
+          <a href="/" className="flex items-center gap-2.5 flex-shrink-0" style={{ textDecoration: "none" }} aria-label="Construction Card Assistance - Home">
+            <svg viewBox="0 0 100 100" className="w-12 h-12 text-[#0f172a]" fill="currentColor">
+              {/* Left Laurel Branch */}
+              <path d="M45,85 C25,75 20,45 35,25 C30,35 30,55 42,70" stroke="currentColor" strokeWidth="2" fill="none" />
+              <path d="M28,32 C26,38 29,43 33,41" />
+              <path d="M25,44 C23,50 26,55 30,53" />
+              <path d="M25,56 C23,62 27,67 31,64" />
+              <path d="M29,68 C28,74 32,78 36,75" />
+              
+              {/* Right Laurel Branch */}
+              <path d="M55,85 C75,75 80,45 65,25 C70,35 70,55 58,70" stroke="currentColor" strokeWidth="2" fill="none" />
+              <path d="M72,32 C74,38 71,43 67,41" />
+              <path d="M75,44 C77,50 74,55 70,53" />
+              <path d="M75,56 C77,62 73,67 69,64" />
+              <path d="M71,68 C72,74 68,78 64,75" />
+              
+              {/* Center Initials */}
+              <text x="50" y="58" fontSize="20" fontWeight="900" textAnchor="middle" fill="#2563eb">CCA</text>
+            </svg>
+            <span className="text-[#0F172A] font-bold text-sm sm:text-base leading-tight">Construction Card Assistance</span>
           </a>
 
           {/* Desktop Nav Links */}

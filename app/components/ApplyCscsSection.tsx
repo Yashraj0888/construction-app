@@ -233,23 +233,23 @@ export default function ApplyCscsSection() {
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Fill the Card Application <a href="#apply" className="step-link">here</a>. Choose the CSCS Card according to your qualification.
+                Complete the CSCS Card application <a href="/cscs-cards" className="step-link">here</a>. Choose the correct card level corresponding to your qualifications and training.
               </div>
             </div>
             
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Select which type of card booking you want to proceed with:
+                Select your booking path:
                 <div className="step-sublist">
                   <div className="step-subitem">
-                    • Select <strong>New Card</strong> if you are applying for the first time.
+                    • Select <strong>New Card</strong> if you are obtaining your credential for the first time.
                   </div>
                   <div className="step-subitem">
-                    • Select <strong>Renew Card</strong> if you want to renew your expired CSCS card.
+                    • Select <strong>Renew Card</strong> if you are updating an expired or soon-to-expire CSCS card.
                   </div>
                   <div className="step-subitem">
-                    • Select <strong>Lost Card</strong> if you want a replacement for your existing CSCS card.
+                    • Select <strong>Lost Card</strong> if you need an official replacement card issued.
                   </div>
                 </div>
               </div>
@@ -258,21 +258,21 @@ export default function ApplyCscsSection() {
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Click <strong>Submit Application</strong> to continue to add CITB test ID, expired CSCS Card number (for Renew Card) and card delivery address.
+                Provide your CITB test details, upload any required qualification certificates, and enter your delivery address.
               </div>
             </div>
 
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Confirm your details and make the payment.
+                Verify your details, confirm submission, and complete the secure payment.
               </div>
             </div>
 
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                That's it. You will receive your CSCS Card in approximately 15 working days once it gets approved.
+                Once approved, your physical CSCS card will be dispatched and delivered within 15 working days.
               </div>
             </div>
           </div>
