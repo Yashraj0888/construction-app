@@ -4,6 +4,8 @@ import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import ServicesSection from "./components/ServicesSection";
 import HowToBookSection from "./components/HowToBookSection";
+import ApplyCscsSection from "./components/ApplyCscsSection";
+import ContactSection from "./components/ContactSection";
 
 export default function Home() {
   return (
@@ -12,6 +14,8 @@ export default function Home() {
       <HeroSection />
       <ServicesSection />
       <HowToBookSection />
+      <ApplyCscsSection />
+      <ContactSection />
     </>
   );
 }
