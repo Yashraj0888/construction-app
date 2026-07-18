@@ -19,7 +19,7 @@ const cscsFormSchema = z.object({
   niNumber: z.string().optional(),
   phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
   emailAddress: z.string().email({ message: "Please enter a valid email address." }),
-  applicationType: z.enum(["new", "renew", "lost"], {
+  applicationType: z.enum(["new", "renew", "lost"] as const, {
     message: "Please select an application type.",
   }),
   occupation: z.string().min(2, { message: "Please enter your occupation." }),
