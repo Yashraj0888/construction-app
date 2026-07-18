@@ -20,14 +20,15 @@ const cscsFormSchema = z.object({
   phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
   emailAddress: z.string().email({ message: "Please enter a valid email address." }),
   applicationType: z.enum(["new", "renew", "lost"], {
-    errorMap: () => ({ message: "Please select an application type." }),
+    message: "Please select an application type.",
   }),
   occupation: z.string().min(2, { message: "Please enter your occupation." }),
   cardType: z.string().min(2, { message: "Please enter the required card type (e.g. Green, Blue)." }),
   agreedToTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to the Terms and Conditions and Privacy Policy." }),
+    message: "You must agree to the Terms and Conditions and Privacy Policy.",
   }),
 });
+
 
 type FormErrors = {
   [key in keyof z.infer<typeof cscsFormSchema>]?: string;
@@ -97,7 +98,7 @@ function ApplyCscsForm() {
     const validation = cscsFormSchema.safeParse(formData);
     if (!validation.success) {
       const fieldErrors: FormErrors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         const path = err.path[0] as keyof FormErrors;
         if (path) {
           fieldErrors[path] = err.message;

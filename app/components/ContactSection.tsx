@@ -48,7 +48,7 @@ export default function ContactSection() {
 
     const validation = contactSchema.safeParse(formData);
     if (!validation.success) {
-      setErrorMessage(validation.error.errors[0].message);
+      setErrorMessage(validation.error.issues[0].message);
       return;
     }
 
