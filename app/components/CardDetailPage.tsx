@@ -68,7 +68,7 @@ export default function CardDetailPage({
     const validation = easyApplySchema.safeParse(formData);
     if (!validation.success) {
       const fieldErrors: FormErrors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         const path = err.path[0] as keyof FormErrors;
         if (path) {
           fieldErrors[path] = err.message;
