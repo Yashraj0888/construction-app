@@ -174,7 +174,7 @@ export default function CscsCardsPage() {
           }
           
           .cards-page-title {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 36px;
             font-weight: 800;
             color: #0f172a;

@@ -153,7 +153,7 @@ function ApplyCscsForm() {
           }
           
           .form-title {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 32px;
             font-weight: 800;
             color: #0f172a;
@@ -186,7 +186,7 @@ function ApplyCscsForm() {
           }
           
           .section-title {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 20px;
             font-weight: 800;
             color: #0f172a;
@@ -226,17 +226,32 @@ function ApplyCscsForm() {
           .input-icon {
             position: absolute;
             left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
             color: #94a3b8;
             pointer-events: none;
+            display: flex;
+            align-items: center;
+          }
+          .input-wrapper .input-icon ~ input {
+            padding-left: 48px !important;
           }
           
           .input-prefix {
             position: absolute;
             left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
             color: #475569;
             font-weight: 700;
             font-size: 14px;
             pointer-events: none;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+          }
+          .input-wrapper .input-prefix ~ input {
+            padding-left: 60px !important;
           }
           
           .input-control {
@@ -584,7 +599,7 @@ function ApplyCscsForm() {
                           value={formData.phoneNumber}
                           onChange={handleInputChange}
                           className={`input-control ${errors.phoneNumber ? "has-error" : ""}`}
-                          style={{ paddingLeft: "54px" }}
+                          style={{ paddingLeft: "60px" }}
                           required
                         />
                       </div>
@@ -604,7 +619,7 @@ function ApplyCscsForm() {
                           value={formData.emailAddress}
                           onChange={handleInputChange}
                           className={`input-control ${errors.emailAddress ? "has-error" : ""}`}
-                          style={{ paddingLeft: "44px" }}
+                          style={{ paddingLeft: "48px" }}
                           required
                         />
                       </div>
