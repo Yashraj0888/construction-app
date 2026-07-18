@@ -185,3 +185,49 @@ body {
 }
 
 /* Force trigger Tailwind recompilation */
+
+/* ---------- Mobile Responsive Padding ---------- */
+/* Ensures no content ever touches the screen edge on small devices */
+@media (max-width: 639px) {
+  /* Main page container already has px-6 (24px), reduce to 16px on very small */
+  main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Page-level section containers — strip any extra inner padding to avoid doubling */
+  .cards-page-header,
+  .detail-container,
+  .form-card,
+  .apply-form-wrapper {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Ensure inner info/booking panels don't overflow */
+  .info-card-box,
+  .validity-card-box,
+  .booking-panel,
+  .blue-alert,
+  .red-alert {
+    padding: 18px !important;
+  }
+
+  /* Reduce title font size so it doesn't overflow on narrow screens */
+  .detail-title,
+  .cards-page-title {
+    font-size: 26px !important;
+  }
+
+  /* Prevent full-width grids from overflowing */
+  .cards-grid,
+  .req-grid {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Stack detail columns on mobile */
+  .detail-columns {
+    flex-direction: column !important;
+  }
+}

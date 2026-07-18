@@ -31,7 +31,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 5 Years",
       description: "For General Labourers and Site Operatives. Requires CITB HS&E Operative Test and a Level 1 award in Health and Safety.",
-      knowMoreLink: "#info-green",
+      knowMoreLink: "/cscs-green-card",
       cardName: "Green Labourer Card",
     },
     {
@@ -43,7 +43,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 5 Years",
       description: "For skilled workers who have achieved a construction related NVQ or SVQ Level 2, or completed an approved apprenticeship.",
-      knowMoreLink: "#info-blue",
+      knowMoreLink: "/cscs-blue-card",
       cardName: "Blue Skilled Worker Card",
     },
     {
@@ -55,7 +55,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 6 Months",
       description: "For people who are working through a probationary period or gaining on-site experience. Non-renewable card.",
-      knowMoreLink: "#info-provisional",
+      knowMoreLink: "/cscs-red-card",
       cardName: "Provisional Temporary Card",
     },
     {
@@ -67,7 +67,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 3 Years",
       description: "For trainees who are registered for an NVQ/SVQ or relevant construction award but have not completed it yet.",
-      knowMoreLink: "#info-trainee",
+      knowMoreLink: "/cscs-red-card",
       cardName: "Trainee Card",
     },
     {
@@ -79,7 +79,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 1 Year",
       description: "For experienced workers registered to complete a construction related NVQ or SVQ Level 2, 3 or higher.",
-      knowMoreLink: "#info-experienced",
+      knowMoreLink: "/cscs-red-card",
       cardName: "Experienced Worker Card",
     },
     {
@@ -91,7 +91,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 3 Years",
       description: "For experienced supervisors, managers, or technical staff registered for an NVQ/SVQ Level 3 or higher.",
-      knowMoreLink: "#info-technical",
+      knowMoreLink: "/cscs-red-card",
       cardName: "Experienced Technical/Supervisor Card",
     },
     {
@@ -103,7 +103,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 5 Years",
       description: "For highly skilled craftspeople who have achieved a construction related NVQ or SVQ Level 3.",
-      knowMoreLink: "#info-gold-advanced",
+      knowMoreLink: "/cscs-gold-card",
       cardName: "Gold Advanced Craft Card",
     },
     {
@@ -115,7 +115,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 5 Years",
       description: "For professionals working in a supervisor role who have achieved a supervisory NVQ or SVQ Level 3 or 4.",
-      knowMoreLink: "#info-gold-supervisor",
+      knowMoreLink: "/cscs-gold-card",
       cardName: "Gold Supervisor Card",
     },
     {
@@ -127,7 +127,7 @@ export default function CscsCardsPage() {
       textHex: "#ffffff",
       validity: "Validity - 5 Years",
       description: "For senior manager occupations who have achieved a relevant management NVQ/SVQ Level 5, 6, or 7.",
-      knowMoreLink: "#info-black",
+      knowMoreLink: "/cscs-black-card",
       cardName: "Black Manager Card",
     },
     {
@@ -139,7 +139,7 @@ export default function CscsCardsPage() {
       textHex: "#0f172a",
       validity: "Validity - 5 Years",
       description: "For professionals who are certified members of CSCS-approved professional bodies (e.g. CIOB, ICE, RIBA).",
-      knowMoreLink: "#info-white-pqp",
+      knowMoreLink: "/cscs-cards",
       cardName: "White PQP Card",
     },
     {
@@ -151,7 +151,7 @@ export default function CscsCardsPage() {
       textHex: "#0f172a",
       validity: "Validity - 5 Years",
       description: "For construction graduates who have completed construction degrees, HNDs, HNCs, or CIOB certificates.",
-      knowMoreLink: "#info-white-aqp",
+      knowMoreLink: "/cscs-cards",
       cardName: "White AQP Card",
     },
   ];
@@ -159,6 +159,10 @@ export default function CscsCardsPage() {
   const handleApplyClick = (cardName: string) => {
     // Navigate to form and pass preselected card type as parameter
     router.push(`/apply-cscs?cardType=${encodeURIComponent(cardName)}`);
+  };
+
+  const handleInfoClick = (link: string) => {
+    router.push(link);
   };
 
   return (
@@ -196,6 +200,7 @@ export default function CscsCardsPage() {
             display: grid;
             grid-template-columns: 1fr;
             gap: 36px;
+            margin-bottom: 20px;
           }
           @media (min-width: 640px) {
             .cards-grid {
@@ -490,10 +495,13 @@ export default function CscsCardsPage() {
                   <p className="card-desc">{card.description}</p>
                   
                   <div className="card-actions">
-                    <a href={card.knowMoreLink} className="action-btn-info">
+                    <button
+                      onClick={() => handleInfoClick(card.knowMoreLink)}
+                      className="action-btn-info"
+                    >
                       <Info size={14} />
                       <span>Info</span>
-                    </a>
+                    </button>
                     <button 
                       onClick={() => handleApplyClick(card.cardName)} 
                       className="action-btn-apply"
