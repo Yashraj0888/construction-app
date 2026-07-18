@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
-import { Mail, Phone, ArrowLeft, ArrowRight, CheckCircle, Info, ClipboardCheck } from "lucide-react";
+import { Mail, Phone, ArrowLeft, ArrowRight, CheckCircle, Info, ClipboardCheck, User, Truck, Lock } from "lucide-react";
 
 // Define Zod Validation Schema for Easy Apply
 const easyApplySchema = z.object({
@@ -46,7 +46,7 @@ export default function CardDetailPage({
   extraContent,
 }: CardDetailProps) {
   const router = useRouter();
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [errors, setErrors] = useState<FormErrors>({});
   const [formData, setFormData] = useState({
     firstName: "",
@@ -55,12 +55,79 @@ export default function CardDetailPage({
     emailAddress: "",
   });
 
+  const [additionalData, setAdditionalData] = useState({
+    citbId: "",
+    addressLine1: "",
+    locality: "",
+    city: "",
+    county: "",
+    postcode: "",
+  });
+  const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+
+  useState(() => {
+    if (typeof window !== "undefined") {
+      const navEntries = window.performance.getEntriesByType("navigation");
+      if (navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload") {
+        sessionStorage.removeItem("cscs_temp_form_data");
+        sessionStorage.removeItem("cscs_temp_address_data");
+      } else {
+        const savedForm = sessionStorage.getItem("cscs_temp_form_data");
+        if (savedForm) {
+          try {
+            const parsed = JSON.parse(savedForm);
+            setFormData({
+              firstName: parsed.firstName || "",
+              lastName: parsed.lastName || "",
+              phoneNumber: parsed.phoneNumber || "",
+              emailAddress: parsed.emailAddress || "",
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        const savedAddress = sessionStorage.getItem("cscs_temp_address_data");
+        if (savedAddress) {
+          try {
+            const parsed = JSON.parse(savedAddress);
+            setAdditionalData({
+              citbId: parsed.citbId || "",
+              addressLine1: parsed.addressLine1 || "",
+              locality: parsed.locality || "",
+              city: parsed.city || "",
+              county: parsed.county || "",
+              postcode: parsed.postcode || "",
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+    }
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("cscs_temp_form_data", JSON.stringify(updated));
+      }
+      return updated;
+    });
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+  };
+
+  const handleAdditionalChange = (field: string, value: string) => {
+    setAdditionalData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("cscs_temp_address_data", JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,7 +146,40 @@ export default function CardDetailPage({
     }
 
     setErrors({});
-    setFormSubmitted(true);
+    router.push(`/apply-cscs?cardType=${encodeURIComponent(cardName)}`);
+  };
+
+  const handleStep2Submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!additionalData.addressLine1.trim()) {
+      newErrors.addressLine1 = "Please enter your house number and street name.";
+    }
+    if (!additionalData.city.trim()) {
+      newErrors.city = "Please enter your town/city.";
+    }
+    if (!additionalData.county.trim()) {
+      newErrors.county = "Please enter your county.";
+    }
+    if (!additionalData.postcode.trim()) {
+      newErrors.postcode = "Please enter your postcode.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setStep2Errors(newErrors);
+      return;
+    }
+
+    setStep2Errors({});
+    setStep(3);
+  };
+
+  const handleReset = () => {
+    setStep(1);
+    setFormData({ firstName: "", lastName: "", phoneNumber: "", emailAddress: "" });
+    setAdditionalData({ citbId: "", addressLine1: "", locality: "", city: "", county: "", postcode: "" });
+    setErrors({});
+    setStep2Errors({});
   };
 
   const isWhiteCard = cardType === "white";
@@ -90,7 +190,7 @@ export default function CardDetailPage({
     <div className="bg-[#f8fafc] min-h-screen flex flex-col">
       <Navbar />
 
-      <main className="flex-grow py-12 px-6">
+      <main style={{ flexGrow: 1, paddingTop: "80px", paddingBottom: "80px", paddingLeft: "24px", paddingRight: "24px" }}>
         <style>{`
           .detail-container {
             max-width: 1024px;
@@ -434,201 +534,934 @@ export default function CardDetailPage({
           .req-btn:hover {
             background: #1d4ed8;
           }
+
+          /* Step 2 Form Styling */
+          .step2-summary-banner {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 40px;
+          }
+          @media (min-width: 640px) {
+            .step2-summary-banner {
+              flex-direction: row;
+              align-items: center;
+            }
+          }
+          
+          .step2-banner-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-top: 0;
+          }
+          
+          .step2-delivery-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+          }
+          
+          .step2-delivery-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          
+          .step2-note-text {
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            margin: 0;
+          }
+          .step2-note-highlight {
+            font-weight: 400;
+            color: #64748b;
+          }
+
+          .step2-section-heading {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 36px;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+            border-bottom: none;
+            padding-bottom: 0;
+          }
+
+          .step2-input-group {
+            margin-bottom: 24px;
+          }
+
+          .step2-button-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+          }
+
+          .step2-btn-back {
+            background: #f43f5e;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+          }
+          .step2-btn-back:hover {
+            background: #e11d48;
+            transform: translateY(-1px);
+          }
+          .step2-btn-back:active {
+            transform: translateY(0);
+          }
+
+          .step2-btn-submit {
+            background: #10b981;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+            text-decoration: none;
+          }
+          .step2-btn-submit:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+          }
+          .step2-btn-submit:active {
+            transform: translateY(0);
+          }
+
+          .cscs-mockup {
+            width: 92%;
+            max-width: 300px;
+            height: 170px;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+            flex-shrink: 0;
+          }
+          
+          .mockup-header {
+            height: 24px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            position: relative;
+          }
+          
+          .mockup-stripes {
+            display: flex;
+            gap: 2px;
+          }
+          .mockup-stripe {
+            width: 8px;
+            height: 4px;
+            border-radius: 1px;
+          }
+          
+          .mockup-card-white .mockup-stripe {
+            background: #000000;
+          }
+          
+          .mockup-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 12px 6px 12px;
+            flex-grow: 1;
+          }
+          
+          .mockup-left {
+            max-width: 60%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-self: stretch;
+            justify-content: space-between;
+            padding-bottom: 4px;
+          }
+          
+          .mockup-chip {
+            width: 28px;
+            height: 22px;
+            background: #cbd5e1;
+            border-radius: 3px;
+          }
+          
+          .mockup-name {
+            font-size: 9px;
+            font-weight: 800;
+            color: #000000;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 2px 4px;
+            border-radius: 2px;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+          }
+          
+          .mockup-photo-box {
+            width: 64px;
+            height: 78px;
+            background: #cbd5e1;
+            border: 1.5px solid #ffffff;
+            border-radius: 5px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+          }
+          .mockup-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          
+          .mockup-footer {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+          }
+
+          /* Step 3 Confirm and Pay Page Styles */
+          .step3-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+            align-items: start;
+            margin-top: 24px;
+          }
+          @media (min-width: 992px) {
+            .step3-container {
+              grid-template-columns: 1.8fr 1.2fr;
+            }
+          }
+
+          .step3-header-box {
+            margin-bottom: 32px;
+          }
+
+          .step3-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+          }
+
+          .step3-subtitle {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.6;
+          }
+
+          .step3-details-panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+
+          .step3-section-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-top: 0;
+          }
+
+          .step3-check-icon {
+            color: #6366f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .step3-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 28px;
+            margin-bottom: 36px;
+          }
+
+          .step3-field-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: block;
+          }
+
+          .step3-field-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .step3-field-icon {
+            color: #64748b;
+            flex-shrink: 0;
+          }
+
+          .step3-sidebar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+
+          .step3-btn-pay {
+            background: #10b981;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: block;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+            text-decoration: none;
+          }
+          .step3-btn-pay:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+          }
+          .step3-btn-pay:active {
+            transform: translateY(0);
+          }
+
+          .step3-btn-update {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: block;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+            text-decoration: none;
+          }
+          .step3-btn-update:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
+          }
+          .step3-btn-update:active {
+            transform: translateY(0);
+          }
+
+          .step3-secure-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 12px;
+          }
+
+          .detail-container.step3-wide-container {
+            max-width: 1200px !important;
+          }
+
+          .step3-summary-banner {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: flex-start;
+          }
+          @media (min-width: 768px) {
+            .step3-summary-banner {
+              flex-direction: row !important;
+              align-items: center !important;
+              justify-content: space-between !important;
+            }
+          }
         `}</style>
 
-        <div className="detail-container">
-          <div className="back-link-wrapper">
-            <a href="/cscs-cards" className="back-link">
-              <ArrowLeft size={16} />
-              <span>Go to full card type list</span>
-            </a>
-          </div>
+        <div className={`detail-container ${step === 3 ? "step3-wide-container" : ""}`}>
+          {step === 1 && (
+            <>
+              <div className="back-link-wrapper">
+                <a href="/cscs-cards" className="back-link">
+                  <ArrowLeft size={16} />
+                  <span>Go to full card type list</span>
+                </a>
+              </div>
 
-          <div className="detail-header-box">
-            <h1 className="detail-title">{title}</h1>
-            <p className="detail-subtitle-note">
-              Apply online: You can conveniently apply for a CSCS Card via our{" "}
-              <a href={`/apply-cscs?cardType=${encodeURIComponent(cardName)}`} className="detail-apply-link">
-                online application service
-              </a>
-              .
-            </p>
-          </div>
+              <div className="detail-header-box">
+                <h1 className="detail-title">{title}</h1>
+                <p className="detail-subtitle-note">
+                  Apply online: You can conveniently apply for a CSCS Card via our{" "}
+                  <a href={`/apply-cscs?cardType=${encodeURIComponent(cardName)}`} className="detail-apply-link">
+                    online application service
+                  </a>
+                  .
+                </p>
+              </div>
 
-          <div className="detail-columns">
-            {/* Left Mockup Display */}
-            <div className="detail-mockup-panel">
-              <div 
-                className={`cscs-large-mockup ${isWhiteCard ? "cscs-large-mockup-white" : ""}`}
-                style={{ background: bgHex }}
-              >
-                <div className="large-mockup-header">
-                  <div className="large-mockup-stripes">
-                    <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
-                    <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
-                    <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
+              <div className="detail-columns">
+                {/* Left Mockup Display */}
+                <div className="detail-mockup-panel">
+                  <div 
+                    className={`cscs-large-mockup ${isWhiteCard ? "cscs-large-mockup-white" : ""}`}
+                    style={{ background: bgHex }}
+                  >
+                    <div className="large-mockup-header">
+                      <div className="large-mockup-stripes">
+                        <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
+                        <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
+                        <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
+                      </div>
+                    </div>
+
+                    <div className="large-mockup-body">
+                      <div className="large-mockup-left">
+                        <div className="large-mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
+                        <div className="large-mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>
+                          {(formData.firstName || formData.lastName) ? `${formData.firstName} ${formData.lastName}`.toUpperCase() : "FIRSTNAME SURNAME"}
+                        </div>
+                      </div>
+                      <div className="large-mockup-photo-box">
+                        <img 
+                          src="/worker_portrait.png" 
+                          alt="" 
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                        />
+                      </div>
+                    </div>
+
+                    <div 
+                      className="large-mockup-footer"
+                      style={{ 
+                        background: isWhiteCard ? "#cbd5e1" : (isGoldCard ? "#92400e" : (isBlackCard ? "#1e293b" : "rgba(255,255,255,0.25)")),
+                        color: isWhiteCard ? "#0f172a" : "#ffffff"
+                      }}
+                    >
+                      {subhead}
+                    </div>
                   </div>
                 </div>
 
-                <div className="large-mockup-body">
-                  <div className="large-mockup-left">
-                    <div className="large-mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
-                    <div className="large-mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>FIRSTNAME SURNAME</div>
+                {/* Right Easy Apply Form */}
+                <div className="easy-apply-card">
+                  <form onSubmit={handleSubmit} noValidate>
+                    <h3 className="easy-apply-title">{easyApplyTitle}</h3>
+                    <p className="easy-apply-subtitle">{easyApplySub}</p>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div>
+                        <input
+                          type="text"
+                          name="firstName"
+                          placeholder="First Name"
+                          value={formData.firstName}
+                          onChange={handleInputChange}
+                          className={`input-control ${errors.firstName ? "has-error" : ""}`}
+                          required
+                        />
+                        {errors.firstName && <div className="error-text">{errors.firstName}</div>}
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          name="lastName"
+                          placeholder="Last Name"
+                          value={formData.lastName}
+                          onChange={handleInputChange}
+                          className={`input-control ${errors.lastName ? "has-error" : ""}`}
+                          required
+                        />
+                        {errors.lastName && <div className="error-text">{errors.lastName}</div>}
+                      </div>
+
+                      <div>
+                        <div className="input-wrapper">
+                          <Phone className="input-icon" size={16} />
+                          <input
+                            type="tel"
+                            name="phoneNumber"
+                            placeholder="Phone Number"
+                            value={formData.phoneNumber}
+                            onChange={handleInputChange}
+                            className={`input-control ${errors.phoneNumber ? "has-error" : ""}`}
+                            style={{ paddingLeft: "48px" }}
+                            required
+                          />
+                        </div>
+                        {errors.phoneNumber && <div className="error-text">{errors.phoneNumber}</div>}
+                      </div>
+
+                      <div>
+                        <div className="input-wrapper">
+                          <Mail className="input-icon" size={16} />
+                          <input
+                            type="email"
+                            name="emailAddress"
+                            placeholder="Email"
+                            value={formData.emailAddress}
+                            onChange={handleInputChange}
+                            className={`input-control ${errors.emailAddress ? "has-error" : ""}`}
+                            style={{ paddingLeft: "48px" }}
+                            required
+                          />
+                        </div>
+                        {errors.emailAddress && <div className="error-text">{errors.emailAddress}</div>}
+                      </div>
+
+                      <button type="submit" className="easy-apply-btn">
+                        <span>Easy Apply</span>
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              {/* Bottom Requirements section */}
+              {requirements && requirements.length > 0 && (
+                <div className="requirements-section">
+                  <h2 className="req-title">Eligibility Requirements</h2>
+                  <div className="req-grid">
+                    {requirements.map((req, index) => {
+                      const isCitb = req.title.toLowerCase().includes("citb");
+                      return (
+                        <div key={index} className="req-card">
+                          <div className="req-icon-wrapper">
+                            {isCitb ? <ClipboardCheck size={22} /> : <CheckCircle size={22} />}
+                          </div>
+                          <h3 className="req-card-title">{req.title}</h3>
+                          <a href={req.link} className="req-btn">
+                            Book Now
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="large-mockup-photo-box">
-                    <img 
-                      src="/worker_portrait.png" 
-                      alt="" 
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+                </div>
+              )}
+
+              {extraContent && (
+                <div className="extra-content-section" style={{ marginTop: "56px", borderTop: "1px solid #e2e8f0", paddingTop: "48px", paddingBottom: "80px" }}>
+                  {extraContent}
+                </div>
+              )}
+            </>
+          )}
+
+          {step === 2 && (
+            <div style={{ maxWidth: "900px", margin: "0 auto", paddingBottom: "60px" }}>
+              {/* Top Summary Banner */}
+              <div className="step2-summary-banner">
+                <div>
+                  <h3 className="step2-banner-title">{cardName}</h3>
+                  <p className="step2-delivery-label">DELIVERY</p>
+                  <div className="step2-delivery-value">
+                    <span>📍 10 days after approval.</span>
+                  </div>
+                  <p className="step2-note-text">
+                    Please Note: <span className="step2-note-highlight">a digital version is available immediately upon approval in the My CSCS app.</span>
+                  </p>
+                </div>
+                
+                {/* Mini card mockup */}
+                <div 
+                  className={`cscs-mockup ${isWhiteCard ? "mockup-card-white" : ""}`}
+                  style={{ background: bgHex }}
+                >
+                  <div className="mockup-header">
+                    <div className="mockup-stripes">
+                      <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                      <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                      <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                    </div>
+                  </div>
+                  <div className="mockup-body">
+                    <div className="mockup-left">
+                      <div className="mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
+                      <div className="mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>
+                        {(formData.firstName || formData.lastName) ? `${formData.firstName} ${formData.lastName}`.toUpperCase() : "FIRSTNAME SURNAME"}
+                      </div>
+                    </div>
+                    <div className="mockup-photo-box">
+                      <img 
+                        src="/worker_portrait.png" 
+                        alt="" 
+                        className="mockup-photo" 
+                      />
+                    </div>
+                  </div>
+                  <div 
+                    className="mockup-footer"
+                    style={{ 
+                      background: isWhiteCard ? "#cbd5e1" : (isGoldCard ? "#92400e" : (isBlackCard ? "#1e293b" : "rgba(255,255,255,0.25)")),
+                      color: isWhiteCard ? "#0f172a" : "#ffffff"
+                    }}
+                  >
+                    {subhead}
+                  </div>
+                </div>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleStep2Submit} noValidate>
+                {/* Additional Information */}
+                <div className="step2-input-group">
+                  <h2 className="step2-section-heading">Additional Information</h2>
+                  <div className="flex flex-col gap-2" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <label className="field-label" style={{ marginBottom: 0 }}>CITB Testing ID(If available)</label>
+                    <input
+                      type="text"
+                      placeholder="eg. CITB000792164"
+                      value={additionalData.citbId}
+                      onChange={(e) => handleAdditionalChange("citbId", e.target.value)}
+                      className="input-control"
+                      style={{ maxWidth: "100%" }}
                     />
                   </div>
                 </div>
 
-                <div 
-                  className="large-mockup-footer"
-                  style={{ 
-                    background: isWhiteCard ? "#cbd5e1" : (isGoldCard ? "#92400e" : (isBlackCard ? "#1e293b" : "rgba(255,255,255,0.25)")),
-                    color: isWhiteCard ? "#0f172a" : "#ffffff"
-                  }}
-                >
-                  {subhead}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Easy Apply Form */}
-            <div className="easy-apply-card">
-              {formSubmitted ? (
-                <div style={{ textAlign: "center", padding: "24px 0" }}>
-                  <div 
-                    style={{ 
-                      width: "60px", 
-                      height: "60px", 
-                      background: "#ecfdf5", 
-                      color: "#10b981", 
-                      borderRadius: "50%", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center", 
-                      margin: "0 auto 20px auto",
-                      border: "2px solid #a7f3d0"
-                    }}
-                  >
-                    <ClipboardCheck size={28} />
-                  </div>
-                  <h3 className="easy-apply-title" style={{ textAlign: "center" }}>Easy Apply Received</h3>
-                  <p className="easy-apply-subtitle" style={{ textAlign: "center", marginTop: "8px" }}>
-                    Thank you! Your preliminary application details for the **{cardName}** have been validated and saved. We will contact you at <strong>{formData.emailAddress}</strong> shortly to finish your booking.
-                  </p>
-                  <button 
-                    onClick={() => { setFormSubmitted(false); setFormData({ firstName: "", lastName: "", phoneNumber: "", emailAddress: "" }); }}
-                    className="easy-apply-btn"
-                  >
-                    Reset Form
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} noValidate>
-                  <h3 className="easy-apply-title">{easyApplyTitle}</h3>
-                  <p className="easy-apply-subtitle">{easyApplySub}</p>
-
+                {/* Address */}
+                <div className="step2-input-group" style={{ marginTop: "32px" }}>
+                  <h2 className="step2-section-heading">Address</h2>
                   <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div>
                       <input
                         type="text"
-                        name="firstName"
-                        placeholder="First Name"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                        className={`input-control ${errors.firstName ? "has-error" : ""}`}
-                        required
+                        placeholder="House number and Street name..."
+                        value={additionalData.addressLine1}
+                        onChange={(e) => {
+                          handleAdditionalChange("addressLine1", e.target.value);
+                          if (step2Errors.addressLine1) setStep2Errors(prev => ({ ...prev, addressLine1: "" }));
+                        }}
+                        className={`input-control ${step2Errors.addressLine1 ? "has-error" : ""}`}
                       />
-                      {errors.firstName && <div className="error-text">{errors.firstName}</div>}
+                      {step2Errors.addressLine1 && <div className="error-text">{step2Errors.addressLine1}</div>}
                     </div>
 
                     <div>
                       <input
                         type="text"
-                        name="lastName"
-                        placeholder="Last Name"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                        className={`input-control ${errors.lastName ? "has-error" : ""}`}
-                        required
+                        placeholder="Locality(Optional)"
+                        value={additionalData.locality}
+                        onChange={(e) => handleAdditionalChange("locality", e.target.value)}
+                        className="input-control"
                       />
-                      {errors.lastName && <div className="error-text">{errors.lastName}</div>}
                     </div>
 
                     <div>
-                      <div className="input-wrapper">
-                        <Phone className="input-icon" size={16} />
-                        <input
-                          type="tel"
-                          name="phoneNumber"
-                          placeholder="Phone Number"
-                          value={formData.phoneNumber}
-                          onChange={handleInputChange}
-                          className={`input-control ${errors.phoneNumber ? "has-error" : ""}`}
-                          style={{ paddingLeft: "48px" }}
-                          required
-                        />
-                      </div>
-                      {errors.phoneNumber && <div className="error-text">{errors.phoneNumber}</div>}
+                      <input
+                        type="text"
+                        placeholder="Town/City"
+                        value={additionalData.city}
+                        onChange={(e) => {
+                          handleAdditionalChange("city", e.target.value);
+                          if (step2Errors.city) setStep2Errors(prev => ({ ...prev, city: "" }));
+                        }}
+                        className={`input-control ${step2Errors.city ? "has-error" : ""}`}
+                      />
+                      {step2Errors.city && <div className="error-text">{step2Errors.city}</div>}
                     </div>
 
                     <div>
-                      <div className="input-wrapper">
-                        <Mail className="input-icon" size={16} />
-                        <input
-                          type="email"
-                          name="emailAddress"
-                          placeholder="Email"
-                          value={formData.emailAddress}
-                          onChange={handleInputChange}
-                          className={`input-control ${errors.emailAddress ? "has-error" : ""}`}
-                          style={{ paddingLeft: "48px" }}
-                          required
-                        />
-                      </div>
-                      {errors.emailAddress && <div className="error-text">{errors.emailAddress}</div>}
+                      <input
+                        type="text"
+                        placeholder="County"
+                        value={additionalData.county}
+                        onChange={(e) => {
+                          handleAdditionalChange("county", e.target.value);
+                          if (step2Errors.county) setStep2Errors(prev => ({ ...prev, county: "" }));
+                        }}
+                        className={`input-control ${step2Errors.county ? "has-error" : ""}`}
+                      />
+                      {step2Errors.county && <div className="error-text">{step2Errors.county}</div>}
                     </div>
 
-                    <button type="submit" className="easy-apply-btn">
-                      <span>Easy Apply</span>
-                      <ArrowRight size={16} />
-                    </button>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Postcode"
+                        value={additionalData.postcode}
+                        onChange={(e) => {
+                          handleAdditionalChange("postcode", e.target.value);
+                          if (step2Errors.postcode) setStep2Errors(prev => ({ ...prev, postcode: "" }));
+                        }}
+                        className={`input-control ${step2Errors.postcode ? "has-error" : ""}`}
+                      />
+                      {step2Errors.postcode && <div className="error-text">{step2Errors.postcode}</div>}
+                    </div>
                   </div>
-                </form>
-              )}
-            </div>
-          </div>
+                </div>
 
-          {/* Bottom Requirements section */}
-          {requirements && requirements.length > 0 && (
-            <div className="requirements-section">
-              <h2 className="req-title">Eligibility Requirements</h2>
-              <div className="req-grid">
-                {requirements.map((req, index) => {
-                  const isCitb = req.title.toLowerCase().includes("citb");
-                  return (
-                    <div key={index} className="req-card">
-                      <div className="req-icon-wrapper">
-                        {isCitb ? <ClipboardCheck size={22} /> : <CheckCircle size={22} />}
+                {/* Bottom Buttons */}
+                <div className="step2-button-row">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="step2-btn-back"
+                  >
+                    <span>Back</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="step2-btn-submit"
+                  >
+                    <span>Submit Application</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div style={{ maxWidth: "1000px", margin: "0 auto", paddingBottom: "60px" }}>
+              <div className="step3-header-box">
+                <h1 className="step3-title">Confirm and Pay - CSCS Card</h1>
+                <p className="step3-subtitle">
+                  Please review your booking details below. A confirmation will be sent to your email upon successful payment.
+                </p>
+              </div>
+
+              <div className="step3-container">
+                {/* Left panel */}
+                <div className="step3-details-panel">
+                  <h2 className="step3-section-title">
+                    <span className="step3-check-icon">
+                      <CheckCircle size={22} style={{ color: "#6366f1" }} />
+                    </span>
+                    <span>Confirm Details</span>
+                  </h2>
+
+                  <div className="step3-grid">
+                    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                        <div>
+                          <span className="step3-field-label">NAME</span>
+                          <span className="step3-field-value">
+                            <User size={16} className="step3-field-icon" />
+                            <span>{formData.firstName} {formData.lastName}</span>
+                          </span>
+                        </div>
+                        <div>
+                          <span className="step3-field-label">EMAIL ADDRESS</span>
+                          <span className="step3-field-value" style={{ wordBreak: "break-all" }}>
+                            <Mail size={16} className="step3-field-icon" />
+                            <span>{formData.emailAddress}</span>
+                          </span>
+                        </div>
                       </div>
-                      <h3 className="req-card-title">{req.title}</h3>
-                      <a href={req.link} className="req-btn">
-                        Book Now
-                      </a>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+                        <div>
+                          <span className="step3-field-label">APPLICATION TYPE</span>
+                          <span className="step3-field-value" style={{ textTransform: "capitalize" }}>
+                            <span>New</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+                        <div>
+                          <span className="step3-field-label">DELIVER TO</span>
+                          <span className="step3-field-value">
+                            <Truck size={18} className="step3-field-icon" />
+                            <span>
+                              {additionalData.addressLine1}
+                              {additionalData.locality ? `, ${additionalData.locality}` : ""}
+                              {`, ${additionalData.city}, ${additionalData.county} - ${additionalData.postcode}`}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+
+                  {/* Card Banner at the bottom of left panel */}
+                  <div className="step2-summary-banner step3-summary-banner" style={{ marginBottom: 0, marginTop: "40px" }}>
+                    <div>
+                      <h3 className="step2-banner-title">{cardName}</h3>
+                      <p className="step2-delivery-label">DELIVERY</p>
+                      <div className="step2-delivery-value">
+                        <span>📍 10 days after approval.</span>
+                      </div>
+                      <p className="step2-note-text">
+                        Please Note: <span className="step2-note-highlight">a digital version is available immediately upon approval in the My CSCS app.</span>
+                      </p>
+                    </div>
+
+                    {/* Mini Card Mockup */}
+                    <div 
+                      className={`cscs-mockup ${isWhiteCard ? "mockup-card-white" : ""}`}
+                      style={{ background: bgHex }}
+                    >
+                      <div className="mockup-header">
+                        <div className="mockup-stripes">
+                          <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                          <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                          <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                        </div>
+                      </div>
+                      <div className="mockup-body">
+                        <div className="mockup-left">
+                          <div className="mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
+                          <div className="mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>
+                            {`${formData.firstName} ${formData.lastName}`.toUpperCase()}
+                          </div>
+                        </div>
+                        <div className="mockup-photo-box">
+                          <img 
+                            src="/worker_portrait.png" 
+                            alt="" 
+                            className="mockup-photo" 
+                          />
+                        </div>
+                      </div>
+                      <div 
+                        className="mockup-footer"
+                        style={{ 
+                          background: isWhiteCard ? "#cbd5e1" : (isGoldCard ? "#92400e" : (isBlackCard ? "#1e293b" : "rgba(255,255,255,0.25)")),
+                          color: isWhiteCard ? "#0f172a" : "#ffffff"
+                        }}
+                      >
+                        {subhead}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right panel (Sidebar buttons) */}
+                <div className="step3-sidebar">
+                  <button 
+                    onClick={() => setStep(4)} 
+                    className="step3-btn-pay"
+                  >
+                    Confirm and Pay
+                  </button>
+                  <button 
+                    onClick={() => setStep(1)} 
+                    className="step3-btn-update"
+                  >
+                    Update Details
+                  </button>
+                  <div className="step3-secure-badge">
+                    <Lock size={14} />
+                    <span>Secure SSL Payment</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {extraContent && (
-            <div className="extra-content-section" style={{ marginTop: "56px", borderTop: "1px solid #e2e8f0", paddingTop: "48px", paddingBottom: "80px" }}>
-              {extraContent}
+          {step === 4 && (
+            <div style={{ textAlign: "center", padding: "48px 0", maxWidth: "600px", margin: "0 auto" }}>
+              <div 
+                style={{ 
+                  width: "80px", 
+                  height: "80px", 
+                  background: "#ecfdf5", 
+                  color: "#10b981", 
+                  borderRadius: "50%", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  margin: "0 auto 24px auto",
+                  border: "2px solid #a7f3d0"
+                }}
+              >
+                <ClipboardCheck size={40} />
+              </div>
+              <h2 className="text-3xl font-black text-slate-800 mb-4 font-serif">Application Submitted</h2>
+              <p className="max-w-md mx-auto text-slate-500 mb-8 leading-relaxed">
+                Thank you, <strong>{formData.firstName} {formData.lastName}</strong>! Your application for the <strong>{cardName}</strong> has been received successfully.
+              </p>
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-left mb-8 text-sm text-slate-600 space-y-2">
+                <p><strong>Email:</strong> {formData.emailAddress}</p>
+                <p><strong>Phone:</strong> {formData.phoneNumber}</p>
+                {additionalData.citbId && <p><strong>CITB ID:</strong> {additionalData.citbId}</p>}
+                <p><strong>Address:</strong> {additionalData.addressLine1}, {additionalData.locality ? additionalData.locality + ", " : ""}{additionalData.city}, {additionalData.county}, {additionalData.postcode}</p>
+              </div>
+              <button 
+                onClick={handleReset}
+                className="easy-apply-btn"
+                style={{ maxWidth: "240px", margin: "0 auto" }}
+              >
+                Apply for another card
+              </button>
             </div>
           )}
         </div>

@@ -41,6 +41,10 @@
   padding: 0;
 }
 
+html, body {
+  height: 100%;
+}
+
 html {
   scroll-behavior: smooth;
   /* Offset for sticky navbar when jumping to anchors */
@@ -55,6 +59,16 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+body > div:first-of-type, #__next {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100%;
 }
 
 /* Custom scrollbar */

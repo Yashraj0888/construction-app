@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronDown } from "lucide-react";
 
@@ -8,6 +8,13 @@ export default function HeroSection() {
   const router = useRouter();
   const [showOptions, setShowOptions] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate =0.5;
+    }
+  }, []);
 
   const options = [
     { id: "cscs", title: "CSCS Card" },
@@ -36,19 +43,32 @@ export default function HeroSection() {
         }
       `}</style>
 
-      {/* Dynamic Background Image */}
+      {/* Dynamic Background Video/Image */}
       <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden">
-        <img 
-          src="/hero_bg_construction_site.png" 
-          alt="" 
-          className="hero-bg-anim w-full h-full object-cover" 
-          style={{ opacity: 0.45, transformOrigin: "center center" }}
-        />
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster="/hero_bg_construction_site.png"
+          className="w-full h-full object-cover"
+          style={{ opacity: 0.60 }}
+        >
+          <source src="https://luskinconferencecenter.ucla.edu/wp-content/assets/luskin-timelapse-final_160807.mp4" type="video/mp4" />
+          {/* Fallback image if video element is not supported */}
+          <img 
+            src="/hero_bg_construction_site.png" 
+            alt="Construction Site Background" 
+            className="hero-bg-anim w-full h-full object-cover" 
+            style={{ opacity: 0.45, transformOrigin: "center center" }}
+          />
+        </video>
         {/* Soft Radial mask overlay for text readability */}
         <div 
-          className="absolute inset-0 bg-white"
+          className="absolute inset-0"
           style={{
-            background: "radial-gradient(circle at center, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.85) 100%)"
+            background: "radial-gradient(circle at center, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.8) 100%)"
           }}
         ></div>
       </div>
@@ -57,17 +77,17 @@ export default function HeroSection() {
 
       <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center text-center">
         {/* V7 Typography Layout */}
-        <h1 className="font-serif tracking-tight leading-[1.08] text-5xl sm:text-6xl md:text-7xl text-[#0F172A] mb-8">
-          <span className="block font-light text-[#2563eb] mb-1">
+        <h1 className="font-serif tracking-tight leading-[1.08] text-5xl sm:text-6xl md:text-7xl text-white mb-8">
+          <span className="block font-light text-[#FBBF24] mb-1">
             CSCS Cards & CITB Tests.
           </span>
-          <span className="block font-bold">
+          <span className="block font-bold text-white">
             Booked Simple & Fast.
           </span>
         </h1>
 
         {/* Subtitle / Description */}
-        <p className="text-base sm:text-lg text-slate-500 max-w-lg leading-relaxed mb-12">
+        <p className="text-base sm:text-lg text-slate-200 max-w-lg leading-relaxed mb-12 font-medium">
           Your secure online portal to schedule CITB touchscreen tests, submit CSCS card applications, and register for safety training courses.
         </p>
 
@@ -76,13 +96,13 @@ export default function HeroSection() {
         <div className="relative flex flex-col items-center gap-4">
           <button
             onClick={() => setShowOptions(!showOptions)}
-            className="mt-2 bg-[#0F172A] hover:bg-gray-800 text-white font-bold text-base sm:text-lg rounded-full tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-[0.97] flex items-center gap-3 cursor-pointer"
+            className="mt-2 bg-white hover:bg-slate-100 text-[#0F172A] font-bold text-base sm:text-lg rounded-full tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-[0.97] flex items-center gap-3 cursor-pointer"
             style={{ padding: "5px 20px",margin:"10px" }}
           >
             <span>Apply Now</span>
             <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${showOptions ? 'rotate-180' : ''}`} />
           </button>
-          <span className="text-xs text-slate-400 font-medium tracking-wide">
+          <span className="text-xs text-slate-300 font-semibold tracking-wide">
             Takes 2 minutes — select your path
           </span>
 
@@ -98,8 +118,10 @@ export default function HeroSection() {
                         setShowOptions(false);
                         if (opt.id === "cscs") {
                           router.push("/cscs-cards");
+                        } else if (opt.id === "citb") {
+                          router.push("/book-citb-test");
                         } else {
-                          alert(`Redirecting to ${opt.title} application...`);
+                          router.push("/apply-cscs");
                         }
                       }}
                       className="w-full text-left text-[#0F172A] font-semibold text-sm sm:text-base hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-150 border-b border-slate-100 last:border-b-0 flex items-center justify-between group cursor-pointer"

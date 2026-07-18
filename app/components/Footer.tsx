@@ -177,8 +177,8 @@ export default function Footer() {
               <Mail size={16} className="text-[#2563eb]" />
               <span>support@constructioncardassistance.co.uk</span>
             </a>
-            <a href="#terms" className="footer-link">Terms and Conditions</a>
-            <a href="#privacy" className="footer-link">Privacy Policy</a>
+            <a href="/terms-and-conditions" className="footer-link">Terms and Conditions</a>
+            <a href="/privacy-policy" className="footer-link">Privacy Policy</a>
           </div>
         </div>
 
@@ -186,10 +186,10 @@ export default function Footer() {
         <div>
           <h3 className="footer-col-title">Quick Links</h3>
           <div className="footer-links">
-            <a href="#know-card" className="footer-link">Know Your Card</a>
-            <a href="#types" className="footer-link">CSCS Card Types</a>
-            <a href="#test" className="footer-link">Trade Wise Test</a>
-            <a href="#centers" className="footer-link">Test Centers</a>
+            <a href="/about-cscs-card" className="footer-link">Know Your Card</a>
+            <a href="/cscs-cards" className="footer-link">CSCS Card Types</a>
+            <a href="/trade-wise-test" className="footer-link">Trade Wise Test</a>
+            <a href="/find-test-centre" className="footer-link">Test Centers</a>
           </div>
         </div>
 

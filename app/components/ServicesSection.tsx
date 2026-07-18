@@ -16,14 +16,14 @@ export default function ServicesSection() {
       description: "Schedule your CITB Touchscreen Test at a nearby official test centre. Flexible date selection with online study materials.",
       cta: "Book Now",
       icon: ClipboardCheck,
-      link: "#citb",
+      link: "/book-citb-test",
     },
     {
       title: "Construction Course leading to Green Card",
       description: "Complete your Health & Safety Awareness Course online or in-person. The final step to qualifying for your Green CSCS Card.",
       cta: "Book Now",
       icon: GraduationCap,
-      link: "#course",
+      link: "/apply-cscs",
     },
     {
       title: "Group Book",

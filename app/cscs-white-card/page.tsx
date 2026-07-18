@@ -1,33 +1,33 @@
 "use client";
 
 import CardDetailPage from "../components/CardDetailPage";
-import { CheckCircle2, FileText, AlertCircle, HelpCircle, Award, ShieldAlert } from "lucide-react";
+import { CheckCircle2, FileText, ShieldAlert, Award } from "lucide-react";
 
-export default function CscsBlackCardPage() {
+export default function CscsWhiteCardPage() {
   return (
     <CardDetailPage
-      cardType="black"
-      title="CSCS Black Card"
-      subhead="MANAGER"
-      bgHex="#0f172a"
-      cardName="Black Manager Card"
-      easyApplyTitle="Black Manager Card"
-      easyApplySub="Easy apply for CSCS Black Card - Managers."
+      cardType="white"
+      title="CSCS White Card - Academically Qualified Person"
+      subhead="ACADEMICALLY QUALIFIED PERSON"
+      bgHex="#f1f5f9"
+      cardName="White AQP Card"
+      easyApplyTitle="White AQP Card"
+      easyApplySub="Easy apply for CSCS White Card - Academically Qualified."
       requirements={[]}
       extraContent={
         <div className="max-w-none text-slate-700">
           <style>{`
-            .black-section {
+            .white-section {
               border-bottom: 1px solid #e2e8f0;
               padding-bottom: 44px;
               margin-bottom: 44px;
             }
-            .black-section:last-of-type {
+            .white-section:last-of-type {
               border-bottom: none;
               padding-bottom: 0;
               margin-bottom: 0;
             }
-            .black-section-title {
+            .white-section-title {
               font-family: 'Plus Jakarta Sans', sans-serif;
               font-size: 24px;
               font-weight: 850;
@@ -36,7 +36,7 @@ export default function CscsBlackCardPage() {
               letter-spacing: -0.02em;
               line-height: 1.25;
             }
-            .black-section-subtitle {
+            .white-section-subtitle {
               font-size: 15px;
               color: #475569;
               line-height: 1.6;
@@ -98,26 +98,12 @@ export default function CscsBlackCardPage() {
               font-weight: 900;
             }
             
-            .black-alert {
-              background: #f8fafc;
-              border: 1px solid #e2e8f0;
-              border-radius: 12px;
-              padding: 18px 22px;
-              color: #334155;
-              font-size: 14.5px;
-              line-height: 1.6;
-              display: flex;
-              gap: 12px;
-              align-items: flex-start;
-              margin-top: 24px;
-            }
-            
             .validity-card-box {
               border-radius: 12px;
               padding: 24px !important;
               border: 1px solid transparent;
             }
-            .validity-card-black {
+            .validity-card-white {
               background: #f8fafc !important;
               border-color: #cbd5e1 !important;
             }
@@ -140,12 +126,12 @@ export default function CscsBlackCardPage() {
           `}</style>
 
           {/* Section 1: Eligibility & Qualifications */}
-          <div className="black-section">
-            <h3 className="black-section-title">
-              Manager & Technical Occupations Eligibility
+          <div className="white-section">
+            <h3 className="white-section-title">
+              Academically Qualified Person Eligibility
             </h3>
-            <p className="black-section-subtitle">
-              This card is available for manager and technical occupations subject to meeting specific qualification requirements.
+            <p className="white-section-subtitle">
+              This card is available to people who have completed construction-related academic qualifications.
             </p>
             
             <div className="qualifications-panel">
@@ -154,29 +140,50 @@ export default function CscsBlackCardPage() {
                 <span>Accepted Qualifications</span>
               </h4>
               <ul className="info-bullet-list">
-                <li>Achievement of a relevant Construction Management/Technical related NVQ/SVQ level 5, 6 or 7.</li>
-                <li>A SVQ Level 4 in Construction Management/Technical related qualification.</li>
-                <li>Holding a pre-existing NVQ level 4 in construction management.</li>
+                <li>Certain construction related degrees</li>
+                <li>HNDs (Higher National Diplomas)</li>
+                <li>HNCs (Higher National Certificates)</li>
+                <li>CIOB Certificates</li>
+                <li>NEBOSH diplomas</li>
               </ul>
             </div>
           </div>
 
-          {/* Section 2: Validity & Test Requirements */}
-          <div className="black-section">
-            <h3 className="black-section-title">
-              Validity & Test Requirements
+          {/* Section 2: Validity & Document Requirements */}
+          <div className="white-section">
+            <h3 className="white-section-title">
+              Validity & Document Requirements
             </h3>
 
             <div className="info-card-grid">
-              <div className="info-card-box validity-card-box validity-card-black">
+              <div className="info-card-box validity-card-box validity-card-white">
                 <h4 className="info-card-heading">
                   <CheckCircle2 className="text-slate-900" size={20} />
                   <span>Card Validity</span>
                 </h4>
                 <p className="text-2xl font-black text-slate-800">5 Years Validity</p>
-                <p className="text-xs text-slate-500 mt-1">This card is valid for five years and is renewable upon expiry.</p>
+                <p className="text-xs text-slate-500 mt-1">This card is valid for five years and is renewable.</p>
               </div>
 
+              <div className="info-card-box">
+                <h4 className="info-card-heading">
+                  <FileText className="text-slate-900" size={20} />
+                  <span>Evidence Required</span>
+                </h4>
+                <p className="text-[14.5px] text-slate-600 leading-relaxed">
+                  To apply for the card, applicants will need to supply a copy of their qualification and, where possible, evidence of the units achieved within the qualification.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Required Test & Pricing */}
+          <div className="white-section">
+            <h3 className="white-section-title">
+              Test Requirement & Pricing
+            </h3>
+            
+            <div className="info-card-grid">
               <div className="info-card-box">
                 <h4 className="info-card-heading">
                   <ShieldAlert className="text-slate-900" size={20} />
@@ -186,19 +193,20 @@ export default function CscsBlackCardPage() {
                   All applicants must pass the <strong>CITB Managers and Professionals Health, Safety and Environment Test</strong>.
                 </p>
               </div>
-            </div>
-          </div>
 
-          {/* Section 3: Cost & Contact */}
-          <div className="black-section">
-            <div className="price-panel text-[14.5px] text-slate-600 space-y-6">
-              <h4 className="font-bold text-slate-800 text-lg mb-2" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
-                Booking Fee & Pricing
-              </h4>
-              <p>
-                The CSCS Card booking is <strong>£65</strong> which includes the £36 CSCS fee, booking fee and VAT.
-              </p>
-              <p className="text-sm font-bold text-slate-700" style={{ marginTop: "20px" }}>
+              <div className="info-card-box validity-card-box" style={{ background: "#eff6ff", borderColor: "#bfdbfe" }}>
+                <h4 className="info-card-heading">
+                  <Award className="text-blue-700" size={20} />
+                  <span>Booking Cost</span>
+                </h4>
+                <p className="text-[14.5px] text-slate-650 leading-relaxed">
+                  The CSCS Card booking is <strong>£65</strong> which includes the £36 CSCS fee, booking fee and VAT.
+                </p>
+              </div>
+            </div>
+
+            <div className="price-panel text-[14.5px] text-slate-600">
+              <p className="text-sm font-bold text-slate-700">
                 Still not sure?{" "}
                 <a href="#contact" className="text-blue-650 font-bold hover:underline">
                   Contact Support

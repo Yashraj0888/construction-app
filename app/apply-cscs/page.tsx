@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { Mail, Phone, Calendar, ClipboardCheck, ArrowLeft, Send } from "lucide-react";
+import { Mail, Phone, Calendar, ClipboardCheck, ArrowLeft, Send, User, Truck, Lock, CheckCircle } from "lucide-react";
 
 // Define Zod Validation Schema
 const cscsFormSchema = z.object({
@@ -37,7 +37,7 @@ type FormErrors = {
 function ApplyCscsForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [errors, setErrors] = useState<FormErrors>({});
 
   const [formData, setFormData] = useState({
@@ -57,6 +57,16 @@ function ApplyCscsForm() {
     agreedToTerms: false,
   });
 
+  const [additionalData, setAdditionalData] = useState({
+    citbId: "",
+    addressLine1: "",
+    locality: "",
+    city: "",
+    county: "",
+    postcode: "",
+  });
+  const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const cardParam = searchParams.get("cardType");
     if (cardParam) {
@@ -73,12 +83,94 @@ function ApplyCscsForm() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const navEntries = window.performance.getEntriesByType("navigation");
+      if (navEntries.length > 0 && (navEntries[0] as PerformanceNavigationTiming).type === "reload") {
+        sessionStorage.removeItem("cscs_temp_form_data");
+        sessionStorage.removeItem("cscs_temp_address_data");
+        return;
+      }
+
+      const savedForm = sessionStorage.getItem("cscs_temp_form_data");
+      if (savedForm) {
+        try {
+          const parsed = JSON.parse(savedForm);
+          setFormData((prev) => ({
+            ...prev,
+            title: parsed.title || prev.title,
+            firstName: parsed.firstName || prev.firstName,
+            middleName: parsed.middleName || prev.middleName,
+            lastName: parsed.lastName || prev.lastName,
+            dobDay: parsed.dobDay || prev.dobDay,
+            dobMonth: parsed.dobMonth || prev.dobMonth,
+            dobYear: parsed.dobYear || prev.dobYear,
+            niNumber: parsed.niNumber || prev.niNumber,
+            phoneNumber: parsed.phoneNumber || prev.phoneNumber,
+            emailAddress: parsed.emailAddress || prev.emailAddress,
+            applicationType: parsed.applicationType || prev.applicationType,
+            occupation: parsed.occupation || prev.occupation,
+            cardType: parsed.cardType || prev.cardType,
+          }));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      const savedAddress = sessionStorage.getItem("cscs_temp_address_data");
+      if (savedAddress) {
+        try {
+          const parsed = JSON.parse(savedAddress);
+          setAdditionalData((prev) => ({
+            ...prev,
+            citbId: parsed.citbId || prev.citbId,
+            addressLine1: parsed.addressLine1 || prev.addressLine1,
+            locality: parsed.locality || prev.locality,
+            city: parsed.city || prev.city,
+            county: parsed.county || prev.county,
+            postcode: parsed.postcode || prev.postcode,
+          }));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, []);
+
+  const getCardStyle = (cardName: string) => {
+    const name = cardName.toLowerCase();
+    if (name.includes("green") || name.includes("labourer")) {
+      return { bgHex: "#047857", subhead: "LABOURER", isWhite: false, isGold: false, isBlack: false };
+    }
+    if (name.includes("blue") || name.includes("skilled")) {
+      return { bgHex: "#1d4ed8", subhead: "SKILLED WORKER", isWhite: false, isGold: false, isBlack: false };
+    }
+    if (name.includes("red") || name.includes("provisional") || name.includes("trainee") || name.includes("experienced")) {
+      return { bgHex: "#b91c1c", subhead: "PROVISIONAL / TRAINEE", isWhite: false, isGold: false, isBlack: false };
+    }
+    if (name.includes("gold") || name.includes("supervisor") || name.includes("advanced")) {
+      return { bgHex: "#b45309", subhead: "SUPERVISOR", isWhite: false, isGold: true, isBlack: false };
+    }
+    if (name.includes("black") || name.includes("manager")) {
+      return { bgHex: "#0f172a", subhead: "MANAGER", isWhite: false, isGold: false, isBlack: true };
+    }
+    if (name.includes("white") || name.includes("pqp") || name.includes("aqp")) {
+      return { bgHex: "#f1f5f9", subhead: "QUALIFIED PERSON", isWhite: true, isGold: false, isBlack: false };
+    }
+    return { bgHex: "#64748b", subhead: "CSCS CARD", isWhite: false, isGold: false, isBlack: false };
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const val = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
     
-    setFormData((prev) => ({ ...prev, [name]: val }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: val };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("cscs_temp_form_data", JSON.stringify(updated));
+      }
+      return updated;
+    });
     // Clear error for this field dynamically
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -86,10 +178,26 @@ function ApplyCscsForm() {
   };
 
   const handleRadioChange = (val: "new" | "renew" | "lost") => {
-    setFormData((prev) => ({ ...prev, applicationType: val }));
+    setFormData((prev) => {
+      const updated = { ...prev, applicationType: val };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("cscs_temp_form_data", JSON.stringify(updated));
+      }
+      return updated;
+    });
     if (errors.applicationType) {
       setErrors((prev) => ({ ...prev, applicationType: undefined }));
     }
+  };
+
+  const handleAdditionalChange = (field: string, value: string) => {
+    setAdditionalData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("cscs_temp_address_data", JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,9 +222,56 @@ function ApplyCscsForm() {
       return;
     }
 
-    // Submit successful
     setErrors({});
-    setFormSubmitted(true);
+    setStep(2);
+  };
+
+  const handleStep2Submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+    if (!additionalData.addressLine1.trim()) {
+      newErrors.addressLine1 = "Please enter your house number and street name.";
+    }
+    if (!additionalData.city.trim()) {
+      newErrors.city = "Please enter your town/city.";
+    }
+    if (!additionalData.county.trim()) {
+      newErrors.county = "Please enter your county.";
+    }
+    if (!additionalData.postcode.trim()) {
+      newErrors.postcode = "Please enter your postcode.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setStep2Errors(newErrors);
+      return;
+    }
+
+    setStep2Errors({});
+    setStep(3);
+  };
+
+  const handleReset = () => {
+    setStep(1);
+    setFormData({
+      title: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      dobDay: "",
+      dobMonth: "",
+      dobYear: "",
+      niNumber: "",
+      phoneNumber: "",
+      emailAddress: "",
+      applicationType: "",
+      occupation: "",
+      cardType: "",
+      agreedToTerms: false,
+    });
+    setAdditionalData({ citbId: "", addressLine1: "", locality: "", city: "", county: "", postcode: "" });
+    setErrors({});
+    setStep2Errors({});
   };
 
   // Generate lists for Date of Birth selectors
@@ -142,7 +297,7 @@ function ApplyCscsForm() {
     <div className="bg-[#f8fafc] min-h-screen flex flex-col">
       <Navbar />
       
-      <main className="flex-grow py-12 px-6">
+      <main style={{ flexGrow: 1, paddingTop: "80px", paddingBottom: "80px", paddingLeft: "24px", paddingRight: "24px" }}>
         <style>{`
           .form-container {
             max-width: 800px;
@@ -408,51 +563,437 @@ function ApplyCscsForm() {
             margin: 0 auto 24px auto;
             border: 2px solid #a7f3d0;
           }
+
+          /* Step 2 Form Styling */
+          .step2-summary-banner {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 40px;
+          }
+          @media (min-width: 640px) {
+            .step2-summary-banner {
+              flex-direction: row;
+              align-items: center;
+            }
+          }
+          
+          .step2-banner-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 8px;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-top: 0;
+          }
+          
+          .step2-delivery-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+          }
+          
+          .step2-delivery-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          
+          .step2-note-text {
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            margin: 0;
+          }
+          .step2-note-highlight {
+            font-weight: 400;
+            color: #64748b;
+          }
+
+          .step2-section-heading {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 36px;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+            border-bottom: none;
+            padding-bottom: 0;
+          }
+
+          .step2-input-group {
+            margin-bottom: 24px;
+          }
+
+          .step2-button-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+          }
+
+          .step2-btn-back {
+            background: #f43f5e;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+          }
+          .step2-btn-back:hover {
+            background: #e11d48;
+            transform: translateY(-1px);
+          }
+          .step2-btn-back:active {
+            transform: translateY(0);
+          }
+
+          .step2-btn-submit {
+            background: #10b981;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+            text-decoration: none;
+          }
+          .step2-btn-submit:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+          }
+          .step2-btn-submit:active {
+            transform: translateY(0);
+          }
+
+          .cscs-mockup {
+            width: 92%;
+            max-width: 300px;
+            height: 170px;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+            flex-shrink: 0;
+          }
+          
+          .mockup-header {
+            height: 24px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            position: relative;
+          }
+          
+          .mockup-stripes {
+            display: flex;
+            gap: 2px;
+          }
+          .mockup-stripe {
+            width: 8px;
+            height: 4px;
+            border-radius: 1px;
+          }
+          
+          .mockup-card-white .mockup-stripe {
+            background: #000000;
+          }
+          
+          .mockup-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 12px 6px 12px;
+            flex-grow: 1;
+          }
+          
+          .mockup-left {
+            max-width: 60%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-self: stretch;
+            justify-content: space-between;
+            padding-bottom: 4px;
+          }
+          
+          .mockup-chip {
+            width: 28px;
+            height: 22px;
+            background: #cbd5e1;
+            border-radius: 3px;
+          }
+          
+          .mockup-name {
+            font-size: 9px;
+            font-weight: 800;
+            color: #000000;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 2px 4px;
+            border-radius: 2px;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+          }
+          
+          .mockup-photo-box {
+            width: 64px;
+            height: 78px;
+            background: #cbd5e1;
+            border: 1.5px solid #ffffff;
+            border-radius: 5px;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+          }
+          .mockup-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          
+          .mockup-footer {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+          }
+
+          /* Step 3 Confirm and Pay Page Styles */
+          .step3-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+            align-items: start;
+            margin-top: 24px;
+          }
+          @media (min-width: 992px) {
+            .step3-container {
+              grid-template-columns: 1.8fr 1.2fr;
+            }
+          }
+
+          .step3-header-box {
+            margin-bottom: 32px;
+          }
+
+          .step3-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+          }
+
+          .step3-subtitle {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.6;
+          }
+
+          .step3-details-panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          }
+
+          .step3-section-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 32px;
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-top: 0;
+          }
+
+          .step3-check-icon {
+            color: #6366f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .step3-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 28px;
+            margin-bottom: 36px;
+          }
+
+          .step3-field-label {
+            font-size: 11px;
+            font-weight: 800;
+            color: #94a3b8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: block;
+          }
+
+          .step3-field-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+
+          .step3-field-icon {
+            color: #64748b;
+            flex-shrink: 0;
+          }
+
+          .step3-sidebar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+
+          .step3-btn-pay {
+            background: #10b981;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: block;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+            text-decoration: none;
+          }
+          .step3-btn-pay:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+          }
+          .step3-btn-pay:active {
+            transform: translateY(0);
+          }
+
+          .step3-btn-update {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: block;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.15);
+            text-decoration: none;
+          }
+          .step3-btn-update:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
+          }
+          .step3-btn-update:active {
+            transform: translateY(0);
+          }
+
+          .step3-secure-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 12px;
+          }
+
+          .form-container.step3-wide-container {
+            max-width: 1200px !important;
+          }
+
+          .step3-summary-banner {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: flex-start;
+          }
+          @media (min-width: 768px) {
+            .step3-summary-banner {
+              flex-direction: row !important;
+              align-items: center !important;
+              justify-content: space-between !important;
+            }
+          }
         `}</style>
 
-        <div className="form-container">
-          <div className="form-header-box">
-            <h1 className="form-title">Apply For CSCS Card</h1>
-            <p className="form-subtitle">
-              Please fill out this form carefully and ensure all information provided is accurate and complete.
-            </p>
-          </div>
+        <div className={`form-container ${step === 3 ? "step3-wide-container" : ""}`}>
+          {step === 1 && (
+            <div className="form-header-box">
+              <h1 className="form-title">Apply For CSCS Card</h1>
+              <p className="form-subtitle">
+                Please fill out this form carefully and ensure all information provided is accurate and complete.
+              </p>
+            </div>
+          )}
 
           <div className="form-card">
-            {formSubmitted ? (
-              <div className="success-card">
-                <div className="success-badge">
-                  <ClipboardCheck size={36} />
-                </div>
-                <h2 className="form-title" style={{ fontSize: "24px" }}>Application Received!</h2>
-                <p className="form-subtitle" style={{ maxWidth: "480px", margin: "12px auto 32px auto", fontSize: "15px" }}>
-                  Your CSCS Card application has been successfully submitted and validated. Our processing team will review your qualifications and contact you shortly.
-                </p>
-                <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-                  <button onClick={() => router.push("/")} className="btn-back">
-                    Return to Homepage
-                  </button>
-                  <button onClick={() => { setFormSubmitted(false); setFormData({
-                    title: "",
-                    firstName: "",
-                    middleName: "",
-                    lastName: "",
-                    dobDay: "",
-                    dobMonth: "",
-                    dobYear: "",
-                    niNumber: "",
-                    phoneNumber: "",
-                    emailAddress: "",
-                    applicationType: "",
-                    occupation: "",
-                    cardType: "",
-                    agreedToTerms: false,
-                  }); }} className="btn-submit">
-                    Apply for Another Card
-                  </button>
-                </div>
-              </div>
-            ) : (
+            {step === 1 && (
               <form onSubmit={handleSubmit} noValidate>
                 {/* Section 1: Personal Details */}
                 <div className="form-section">
@@ -468,7 +1009,7 @@ function ApplyCscsForm() {
                         className={`input-control ${errors.title ? "has-error" : ""}`}
                         required
                       >
-                        <option value="">Select A Title</option>
+                        <option value="">Select Title</option>
                         <option value="Mr">Mr</option>
                         <option value="Mrs">Mrs</option>
                         <option value="Miss">Miss</option>
@@ -479,13 +1020,13 @@ function ApplyCscsForm() {
                     </div>
                   </div>
 
-                  <div className="form-row form-row-3">
+                  <div className="form-row-3 form-row">
                     <div>
                       <label className="field-label">First Name*</label>
                       <input
                         type="text"
                         name="firstName"
-                        placeholder="First Name"
+                        placeholder="e.g. John"
                         value={formData.firstName}
                         onChange={handleInputChange}
                         className={`input-control ${errors.firstName ? "has-error" : ""}`}
@@ -493,23 +1034,25 @@ function ApplyCscsForm() {
                       />
                       {errors.firstName && <div className="error-text">{errors.firstName}</div>}
                     </div>
+
                     <div>
-                      <label className="field-label">Middle Name</label>
+                      <label className="field-label">Middle Name(s)</label>
                       <input
                         type="text"
                         name="middleName"
-                        placeholder="Middle Name"
+                        placeholder="Optional"
                         value={formData.middleName}
                         onChange={handleInputChange}
                         className="input-control"
                       />
                     </div>
+
                     <div>
                       <label className="field-label">Last Name*</label>
                       <input
                         type="text"
                         name="lastName"
-                        placeholder="Last Name"
+                        placeholder="e.g. Smith"
                         value={formData.lastName}
                         onChange={handleInputChange}
                         className={`input-control ${errors.lastName ? "has-error" : ""}`}
@@ -518,14 +1061,11 @@ function ApplyCscsForm() {
                       {errors.lastName && <div className="error-text">{errors.lastName}</div>}
                     </div>
                   </div>
-                  <p className="field-note">
-                    *Please enter your full name <strong>exactly as it appears on your photographic ID</strong> (e.g., passport or driving licence)
-                  </p>
 
-                  <div className="form-row" style={{ marginTop: "24px" }}>
+                  <div className="form-row">
                     <div>
                       <label className="field-label">Date of Birth*</label>
-                      <div className="grid grid-cols-3 gap-3 form-row-dob">
+                      <div className="form-row-dob form-row">
                         <select
                           name="dobDay"
                           value={formData.dobDay}
@@ -535,7 +1075,7 @@ function ApplyCscsForm() {
                         >
                           <option value="">Day</option>
                           {days.map((d) => (
-                            <option key={d} value={d.padStart(2, "0")}>{d}</option>
+                            <option key={d} value={d}>{d}</option>
                           ))}
                         </select>
                         <select
@@ -729,12 +1269,358 @@ function ApplyCscsForm() {
                     <ArrowLeft size={16} />
                     <span>Back</span>
                   </button>
-                  <button type="submit" className="btn-submit">
-                    <span>Submit Application</span>
+                  <button 
+                    type="submit" 
+                    className="btn-submit"
+                    disabled={!formData.agreedToTerms}
+                    style={{ opacity: formData.agreedToTerms ? 1 : 0.5, cursor: formData.agreedToTerms ? "pointer" : "not-allowed" }}
+                  >
+                    <span>Next Step</span>
                     <Send size={16} />
                   </button>
                 </div>
               </form>
+            )}
+
+            {step === 2 && (
+              <div style={{ padding: "8px 0" }}>
+                {/* Top Summary Banner */}
+                {(() => {
+                  const cardStyle = getCardStyle(formData.cardType);
+                  return (
+                    <div className="step2-summary-banner">
+                      <div>
+                        <h3 className="step2-banner-title">{formData.cardType || "CSCS Card"}</h3>
+                        <p className="step2-delivery-label">DELIVERY</p>
+                        <div className="step2-delivery-value">
+                          <span>📍 10 days after approval.</span>
+                        </div>
+                        <p className="step2-note-text">
+                          Please Note: <span className="step2-note-highlight">a digital version is available immediately upon approval in the My CSCS app.</span>
+                        </p>
+                      </div>
+                      
+                      {/* Mini card mockup */}
+                      <div 
+                        className={`cscs-mockup ${cardStyle.isWhite ? "mockup-card-white" : ""}`}
+                        style={{ background: cardStyle.bgHex }}
+                      >
+                        <div className="mockup-header">
+                          <div className="mockup-stripes">
+                            <div className="mockup-stripe" style={{ background: cardStyle.isWhite ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                            <div className="mockup-stripe" style={{ background: cardStyle.isWhite ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                            <div className="mockup-stripe" style={{ background: cardStyle.isWhite ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                          </div>
+                        </div>
+                        <div className="mockup-body">
+                          <div className="mockup-left">
+                            <div className="mockup-chip" style={{ background: cardStyle.isWhite ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
+                            <div className="mockup-name" style={{ color: cardStyle.isWhite ? "#0f172a" : "#000000" }}>
+                              {(formData.firstName || formData.lastName) ? `${formData.firstName} ${formData.lastName}`.toUpperCase() : "FIRSTNAME SURNAME"}
+                            </div>
+                          </div>
+                          <div className="mockup-photo-box">
+                            <img 
+                              src="/worker_portrait.png" 
+                              alt="" 
+                              className="mockup-photo" 
+                            />
+                          </div>
+                        </div>
+                        <div 
+                          className="mockup-footer"
+                          style={{ 
+                            background: cardStyle.isWhite ? "#cbd5e1" : (cardStyle.isGold ? "#92400e" : (cardStyle.isBlack ? "#1e293b" : "rgba(255,255,255,0.25)")),
+                            color: cardStyle.isWhite ? "#0f172a" : "#ffffff"
+                          }}
+                        >
+                          {cardStyle.subhead}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Form */}
+                <form onSubmit={handleStep2Submit} noValidate>
+                  {/* Additional Information */}
+                  <div className="step2-input-group">
+                    <h2 className="step2-section-heading">Additional Information</h2>
+                    <div className="flex flex-col gap-2" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <label className="field-label" style={{ marginBottom: 0 }}>CITB Testing ID(If available)</label>
+                      <input
+                        type="text"
+                        placeholder="eg. CITB000792164"
+                        value={additionalData.citbId}
+                        onChange={(e) => handleAdditionalChange("citbId", e.target.value)}
+                        className="input-control"
+                        style={{ maxWidth: "100%" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div className="step2-input-group" style={{ marginTop: "32px" }}>
+                    <h2 className="step2-section-heading">Address</h2>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="House number and Street name..."
+                          value={additionalData.addressLine1}
+                          onChange={(e) => {
+                            handleAdditionalChange("addressLine1", e.target.value);
+                            if (step2Errors.addressLine1) setStep2Errors(prev => ({ ...prev, addressLine1: "" }));
+                          }}
+                          className={`input-control ${step2Errors.addressLine1 ? "has-error" : ""}`}
+                        />
+                        {step2Errors.addressLine1 && <div className="error-text">{step2Errors.addressLine1}</div>}
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Locality(Optional)"
+                          value={additionalData.locality}
+                          onChange={(e) => handleAdditionalChange("locality", e.target.value)}
+                          className="input-control"
+                        />
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Town/City"
+                          value={additionalData.city}
+                          onChange={(e) => {
+                            handleAdditionalChange("city", e.target.value);
+                            if (step2Errors.city) setStep2Errors(prev => ({ ...prev, city: "" }));
+                          }}
+                          className={`input-control ${step2Errors.city ? "has-error" : ""}`}
+                        />
+                        {step2Errors.city && <div className="error-text">{step2Errors.city}</div>}
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="County"
+                          value={additionalData.county}
+                          onChange={(e) => {
+                            handleAdditionalChange("county", e.target.value);
+                            if (step2Errors.county) setStep2Errors(prev => ({ ...prev, county: "" }));
+                          }}
+                          className={`input-control ${step2Errors.county ? "has-error" : ""}`}
+                        />
+                        {step2Errors.county && <div className="error-text">{step2Errors.county}</div>}
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Postcode"
+                          value={additionalData.postcode}
+                          onChange={(e) => {
+                            handleAdditionalChange("postcode", e.target.value);
+                            if (step2Errors.postcode) setStep2Errors(prev => ({ ...prev, postcode: "" }));
+                          }}
+                          className={`input-control ${step2Errors.postcode ? "has-error" : ""}`}
+                        />
+                        {step2Errors.postcode && <div className="error-text">{step2Errors.postcode}</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Buttons */}
+                  <div className="step2-button-row">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="step2-btn-back"
+                    >
+                      <span>Back</span>
+                    </button>
+                    <button
+                      type="submit"
+                      className="step2-btn-submit"
+                    >
+                      <span>Submit Application</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {step === 3 && (
+              (() => {
+                const cardStyle = getCardStyle(formData.cardType);
+                return (
+                  <div style={{ maxWidth: "1000px", margin: "0 auto", paddingBottom: "60px" }}>
+                    <div className="step3-header-box">
+                      <h1 className="step3-title">Confirm and Pay - CSCS Card</h1>
+                      <p className="step3-subtitle">
+                        Please review your booking details below. A confirmation will be sent to your email upon successful payment.
+                      </p>
+                    </div>
+
+                    <div className="step3-container">
+                      {/* Left panel */}
+                      <div className="step3-details-panel">
+                        <h2 className="step3-section-title">
+                          <span className="step3-check-icon">
+                            <CheckCircle size={22} style={{ color: "#6366f1" }} />
+                          </span>
+                          <span>Confirm Details</span>
+                        </h2>
+
+                        <div className="step3-grid">
+                          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                              <div>
+                                <span className="step3-field-label">NAME</span>
+                                <span className="step3-field-value">
+                                  <User size={16} className="step3-field-icon" />
+                                  <span>{formData.firstName} {formData.lastName}</span>
+                                </span>
+                              </div>
+                              <div>
+                                <span className="step3-field-label">EMAIL ADDRESS</span>
+                                <span className="step3-field-value" style={{ wordBreak: "break-all" }}>
+                                  <Mail size={16} className="step3-field-icon" />
+                                  <span>{formData.emailAddress}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+                              <div>
+                                <span className="step3-field-label">APPLICATION TYPE</span>
+                                <span className="step3-field-value" style={{ textTransform: "capitalize" }}>
+                                  <span>{formData.applicationType}</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
+                              <div>
+                                <span className="step3-field-label">DELIVER TO</span>
+                                <span className="step3-field-value">
+                                  <Truck size={18} className="step3-field-icon" />
+                                  <span>
+                                    {additionalData.addressLine1}
+                                    {additionalData.locality ? `, ${additionalData.locality}` : ""}
+                                    {`, ${additionalData.city}, ${additionalData.county} - ${additionalData.postcode}`}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Banner at the bottom of left panel */}
+                        <div className="step2-summary-banner step3-summary-banner" style={{ marginBottom: 0, marginTop: "40px" }}>
+                          <div>
+                            <h3 className="step2-banner-title">{formData.cardType || "CSCS Card"}</h3>
+                            <p className="step2-delivery-label">DELIVERY</p>
+                            <div className="step2-delivery-value">
+                              <span>📍 10 days after approval.</span>
+                            </div>
+                            <p className="step2-note-text">
+                              Please Note: <span className="step2-note-highlight">a digital version is available immediately upon approval in the My CSCS app.</span>
+                            </p>
+                          </div>
+
+                          {/* Mini Card Mockup */}
+                          <div 
+                            className={`cscs-mockup ${cardStyle.isWhite ? "mockup-card-white" : ""}`}
+                            style={{ background: cardStyle.bgHex }}
+                          >
+                            <div className="mockup-header">
+                              <div className="mockup-stripes">
+                                <div className="mockup-stripe" style={{ background: cardStyle.isWhite ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                                <div className="mockup-stripe" style={{ background: cardStyle.isWhite ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                                <div className="mockup-stripe" style={{ background: cardStyle.isWhite ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                              </div>
+                            </div>
+                            <div className="mockup-body">
+                              <div className="mockup-left">
+                                <div className="mockup-chip" style={{ background: cardStyle.isWhite ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
+                                <div className="mockup-name" style={{ color: cardStyle.isWhite ? "#0f172a" : "#000000" }}>
+                                  {`${formData.firstName} ${formData.lastName}`.toUpperCase()}
+                                </div>
+                              </div>
+                              <div className="mockup-photo-box">
+                                <img 
+                                  src="/worker_portrait.png" 
+                                  alt="" 
+                                  className="mockup-photo" 
+                                />
+                              </div>
+                            </div>
+                            <div 
+                              className="mockup-footer"
+                              style={{ 
+                                background: cardStyle.isWhite ? "#cbd5e1" : (cardStyle.isGold ? "#92400e" : (cardStyle.isBlack ? "#1e293b" : "rgba(255,255,255,0.25)")),
+                                color: cardStyle.isWhite ? "#0f172a" : "#ffffff"
+                              }}
+                            >
+                              {cardStyle.subhead}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right panel (Sidebar buttons) */}
+                      <div className="step3-sidebar">
+                        <button 
+                          onClick={() => setStep(4)} 
+                          className="step3-btn-pay"
+                        >
+                          Confirm and Pay
+                        </button>
+                        <button 
+                          onClick={() => setStep(1)} 
+                          className="step3-btn-update"
+                        >
+                          Update Details
+                        </button>
+                        <div className="step3-secure-badge">
+                          <Lock size={14} />
+                          <span>Secure SSL Payment</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
+            {step === 4 && (
+              <div className="success-card">
+                <div className="success-badge">
+                  <ClipboardCheck size={36} />
+                </div>
+                <h2 className="form-title" style={{ fontSize: "24px" }}>Application Received!</h2>
+                <p className="form-subtitle" style={{ maxWidth: "480px", margin: "12px auto 32px auto", fontSize: "15px" }}>
+                  Your CSCS Card application has been successfully submitted and validated. Our processing team will review your qualifications and contact you shortly.
+                </p>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-left mb-8 text-sm text-slate-600 space-y-2 max-w-md mx-auto">
+                  <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
+                  <p><strong>Email:</strong> {formData.emailAddress}</p>
+                  <p><strong>Phone:</strong> {formData.phoneNumber}</p>
+                  <p><strong>Card Type:</strong> {formData.cardType}</p>
+                  {additionalData.citbId && <p><strong>CITB ID:</strong> {additionalData.citbId}</p>}
+                  <p><strong>Address:</strong> {additionalData.addressLine1}, {additionalData.locality ? additionalData.locality + ", " : ""}{additionalData.city}, {additionalData.county}, {additionalData.postcode}</p>
+                </div>
+                <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+                  <button onClick={() => router.push("/")} className="btn-back">
+                    Return to Homepage
+                  </button>
+                  <button onClick={handleReset} className="btn-submit">
+                    Apply for Another Card
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

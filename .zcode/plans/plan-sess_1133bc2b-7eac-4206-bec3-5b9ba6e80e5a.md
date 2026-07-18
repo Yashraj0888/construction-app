@@ -1,4 +1,4 @@
-Clean, standard visual redesign of the Construction Worker Support site — single calm-blue accent (`#2563EB`) on neutral slate/white, removing the loud amber, dark hero gradient, wave divider, pulsing animations, and competing multi-color cards. No logic changes.
+Clean, standard visual redesign of the Construction Card Assistance site — single calm-blue accent (`#2563EB`) on neutral slate/white, removing the loud amber, dark hero gradient, wave divider, pulsing animations, and competing multi-color cards. No logic changes.
 
 ## Palette
 - Accent `#2563EB` (hover `#1D4ED8`, soft `#EFF6FF`) for buttons, links, focus, active/selected states.

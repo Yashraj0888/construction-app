@@ -4,7 +4,7 @@ import { useState } from "react";
 import { HardHat, Menu, X, ChevronRight, ChevronDown } from "lucide-react";
 
 const navLinks = [
-  { label: "CITB Test", href: "#" },
+  { label: "CITB Test", href: "/book-citb-test" },
   {
     label: "CSCS Cards",
     href: "#",

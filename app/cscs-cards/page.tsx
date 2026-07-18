@@ -151,7 +151,7 @@ export default function CscsCardsPage() {
       textHex: "#0f172a",
       validity: "Validity - 5 Years",
       description: "For construction graduates who have completed construction degrees, HNDs, HNCs, or CIOB certificates.",
-      knowMoreLink: "/cscs-cards",
+      knowMoreLink: "/cscs-white-card",
       cardName: "White AQP Card",
     },
   ];
