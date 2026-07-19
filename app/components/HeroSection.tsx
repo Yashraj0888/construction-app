@@ -140,7 +140,7 @@ export default function HeroSection() {
 
       {/* Trust & Legal Footer */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-6 text-center">
-        <p className="text-[10px] sm:text-xs text-slate-400 leading-relaxed font-light">
+        <p className="text-[10px] sm:text-xs text-slate-100 leading-relaxed font-light">
           Disclaimer: Construction Card Assistance explicitly states that we are an independent booking service and are not directly part of, or officially associated with, the CSCS or CITB.
         </p>
       </div>
