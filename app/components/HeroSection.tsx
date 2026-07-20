@@ -120,6 +120,8 @@ export default function HeroSection() {
                           router.push("/cscs-cards");
                         } else if (opt.id === "citb") {
                           router.push("/book-citb-test");
+                        } else if (opt.id === "course") {
+                          router.push("/course-book");
                         } else {
                           router.push("/apply-cscs");
                         }

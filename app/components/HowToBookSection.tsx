@@ -218,7 +218,7 @@ export default function HowToBookSection() {
             <div className="step-item">
               <div className="step-marker">▶</div>
               <div className="step-text">
-                Complete the online booking form <a href="#apply" className="step-link">here</a>, choosing your preferred date, time slot, and test center.
+                Complete the online booking form <a href="/book-citb-test" className="step-link">here</a>, choosing your preferred date, time slot, and test center.
               </div>
             </div>
             
@@ -238,7 +238,7 @@ export default function HowToBookSection() {
           </div>
 
           <div className="footer-note">
-            Need help selecting the correct test category? Find the recommended exam for your specific trade <a href="#apply" className="step-link">here</a>.
+            Need help selecting the correct test category? Find the recommended exam for your specific trade <a href="/trade-wise-test" className="step-link">here</a>.
           </div>
         </div>
       </div>

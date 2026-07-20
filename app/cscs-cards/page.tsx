@@ -216,28 +216,27 @@ export default function CscsCardsPage() {
           /* Single Card Container */
           .card-block {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
+            border: 1px solid #d4dae3;
+            border-radius: 4px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025);
-            transition: all 0.25s ease;
+            box-shadow: none;
+            transition: background 0.15s ease;
           }
           .card-block:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+            background: #fafbfc;
           }
           
           /* Visual Graphical Card Mockup Header */
           .mockup-wrapper {
-            background: #f1f5f9;
-            padding: 10px;
+            background: #e8edf2;
+            padding: 18px 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 1px solid #e2e8f0;
-            height: 195px;
+            border-bottom: 1px solid #d4dae3;
+            height: 210px;
             position: relative;
           }
           
@@ -245,46 +244,68 @@ export default function CscsCardsPage() {
             width: 92%;
             max-width: 300px;
             height: 170px;
-            border-radius: 10px;
+            border-radius: 7px;
             position: relative;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.2);
             box-sizing: border-box;
+            transform: perspective(900px) rotateY(-5deg) rotateX(2deg);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.25),
+              inset 0 -8px 18px rgba(0,0,0,0.1),
+              6px 12px 20px rgba(15, 23, 42, 0.18);
+          }
+          .cscs-mockup::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              125deg,
+              rgba(255,255,255,0.2) 0%,
+              transparent 42%,
+              rgba(0,0,0,0.05) 100%
+            );
+            pointer-events: none;
+            z-index: 2;
           }
           
           .mockup-header {
             height: 24px;
             display: flex;
             align-items: center;
-            padding: 0 8px;
+            padding: 10px 0 0 10px;
             position: relative;
+            z-index: 1;
           }
           
           .mockup-stripes {
             display: flex;
-            gap: 2px;
+            flex-direction: column;
+            gap: 3px;
           }
           .mockup-stripe {
-            width: 8px;
-            height: 4px;
-            border-radius: 1px;
+            width: 22px;
+            height: 3px;
+            border-radius: 0;
+            background: rgba(0,0,0,0.28);
           }
           
           /* White card has custom black stripes */
           .mockup-card-white .mockup-stripe {
-            background: #000000;
+            background: #0f172a;
           }
           
           .mockup-body {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding: 0 12px 6px 12px;
+            padding: 0 10px 8px 10px;
             flex-grow: 1;
+            position: relative;
+            z-index: 1;
           }
           
           .mockup-left {
@@ -298,32 +319,34 @@ export default function CscsCardsPage() {
           }
           
           .mockup-chip {
-            width: 28px;
-            height: 22px;
-            background: #cbd5e1;
-            border-radius: 3px;
+            width: 26px;
+            height: 20px;
+            background: linear-gradient(145deg, #f5e6b8 0%, #c9a227 45%, #8a6d1b 100%);
+            border-radius: 2px;
+            border: 1px solid rgba(0,0,0,0.15);
           }
           
           .mockup-name {
             font-size: 9px;
             font-weight: 800;
-            color: #000000;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 2px 4px;
-            border-radius: 2px;
+            color: #0f172a;
+            background: #f1f5f9;
+            padding: 2px 5px;
+            border-radius: 1px;
             white-space: nowrap;
             letter-spacing: 0.02em;
+            border: 1px solid rgba(0,0,0,0.08);
           }
           
           .mockup-photo-box {
-            width: 64px;
-            height: 78px;
-            background: #cbd5e1;
-            border: 1.5px solid #ffffff;
-            border-radius: 5px;
+            width: 60px;
+            height: 74px;
+            background: #94a3b8;
+            border: 1.5px solid #f8fafc;
+            border-radius: 1px;
             overflow: hidden;
             flex-shrink: 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
           }
           .mockup-photo {
             width: 100%;
@@ -332,15 +355,17 @@ export default function CscsCardsPage() {
           }
           
           .mockup-footer {
-            height: 32px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 11.5px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            letter-spacing: 0.06em;
+            border-top: 1px solid rgba(0, 0, 0, 0.12);
+            position: relative;
+            z-index: 1;
           }
           
           /* Card Info Text area */
@@ -380,18 +405,18 @@ export default function CscsCardsPage() {
           .card-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: 8px;
             margin-top: auto;
           }
           
           .action-btn-info {
             padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            border: 1px solid #94a3b8;
             font-weight: 700;
-            font-size: 13.5px;
+            font-size: 13px;
             background: #ffffff;
-            color: #475569;
+            color: #0f172a;
             text-align: center;
             text-decoration: none;
             transition: all 0.2s ease;
@@ -409,12 +434,12 @@ export default function CscsCardsPage() {
           
           .action-btn-apply {
             padding: 10px;
-            border-radius: 10px;
-            background: #2563eb;
+            border-radius: 3px;
+            background: #0f172a;
             color: #ffffff;
-            border: none;
+            border: 1px solid #0f172a;
             font-weight: 700;
-            font-size: 13.5px;
+            font-size: 13px;
             text-align: center;
             transition: all 0.2s ease;
             display: inline-flex;
@@ -425,8 +450,8 @@ export default function CscsCardsPage() {
             box-shadow: 0 4px 8px rgba(37, 99, 235, 0.15);
           }
           .action-btn-apply:hover {
-            background: #1d4ed8;
-            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
+            background: #1e293b;
+            box-shadow: none;
           }
         `}</style>
 
@@ -453,16 +478,17 @@ export default function CscsCardsPage() {
                   >
                     <div className="mockup-header">
                       <div className="mockup-stripes">
-                        <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                        <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                        <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                        <div className="mockup-stripe" />
+                        <div className="mockup-stripe" />
+                        <div className="mockup-stripe" />
+                        <div className="mockup-stripe" />
                       </div>
                     </div>
                     
                     <div className="mockup-body">
                       <div className="mockup-left">
-                        <div className="mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
-                        <div className="mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>FIRSTNAME SURNAME</div>
+                        <div className="mockup-chip" />
+                        <div className="mockup-name">FIRSTNAME SURNAME</div>
                       </div>
                       <div className="mockup-photo-box">
                         <img 

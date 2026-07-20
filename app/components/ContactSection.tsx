@@ -3,10 +3,17 @@
 import { useState, useEffect } from "react";
 import { Mail, MapPin, Phone, RotateCw, Send } from "lucide-react";
 import { z } from "zod";
+import { createEnquiry } from "@/lib/enquiries";
+import { isValidEmail } from "@/lib/validation";
 
 const contactSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
+  email: z
+    .string()
+    .min(1, { message: "Email address is required." })
+    .refine((v) => isValidEmail(v), {
+      message: "Enter a valid email address (e.g. name@domain.com).",
+    }),
   subject: z.string().optional(),
   message: z.string().min(10, { message: "Message must be at least 10 characters." }),
 });
@@ -61,6 +68,20 @@ export default function ContactSection() {
 
     setFormSubmitted(true);
     setErrorMessage("");
+    void createEnquiry({
+      enquiry_type: "contact",
+      product: formData.subject || "Contact form",
+      source_path: "/#contact",
+      first_name: formData.name || null,
+      email: formData.email || null,
+      message: formData.message || null,
+      status: "new",
+      agreed_to_terms: false,
+      payload: {
+        trigger: "form_submitted",
+        subject: formData.subject,
+      },
+    });
     setFormData({ name: "", email: "", subject: "", message: "" });
     setCaptchaInput("");
     generateCaptcha();

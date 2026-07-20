@@ -1,49 +1,78 @@
 "use client";
 
-import { CreditCard, ClipboardCheck, GraduationCap, Users } from "lucide-react";
+import { CreditCard, ClipboardCheck, GraduationCap, Users, ArrowUpRight } from "lucide-react";
 
 export default function ServicesSection() {
   const services = [
     {
       title: "Apply CSCS Card",
-      description: "Get your CSCS Card online today. Fast-track application processing, renewals, and replacements for lost cards under one simple dashboard.",
-      cta: "Apply Now",
+      description: "New applications, renewals, and replacements — handled in one place without the runaround.",
+      cta: "Apply now",
       icon: CreditCard,
       link: "/cscs-cards",
+      accent: "#0f172a",
     },
     {
       title: "Book CITB HS&E Test",
-      description: "Schedule your CITB Touchscreen Test at a nearby official test centre. Flexible date selection with online study materials.",
-      cta: "Book Now",
+      description: "Pick a nearby test centre and a slot that fits your week. Study materials included.",
+      cta: "Book a test",
       icon: ClipboardCheck,
       link: "/book-citb-test",
+      accent: "#1d4ed8",
     },
     {
-      title: "Construction Course leading to Green Card",
-      description: "Complete your Health & Safety Awareness Course online or in-person. The final step to qualifying for your Green CSCS Card.",
-      cta: "Book Now",
+      title: "Course for Green Card",
+      description: "Health & Safety Awareness online or in a classroom — the step most labourers still need.",
+      cta: "View course",
       icon: GraduationCap,
-      link: "/apply-cscs",
+      link: "/health-safety-awareness",
+      accent: "#047857",
     },
     {
-      title: "Group Book",
-      description: "Coordinate bookings for multiple team members at once. Secure group test dates, card applications, and training with corporate discounts.",
+      title: "Group booking",
+      description: "Book tests, courses, or cards for a whole crew. Ask about multi-delegate rates.",
       cta: "Enquire",
       icon: Users,
-      link: "#group",
+      link: "/group-booking",
+      accent: "#b45309",
     },
   ];
 
   return (
-    <section className="bg-slate-50 border-t border-b border-slate-200" style={{ paddingTop: "60px", paddingBottom: "60px" }}>
+    <section style={{ background: "#f1f5f9", borderTop: "1px solid #e2e8f0", borderBottom: "1px solid #e2e8f0", paddingTop: "72px", paddingBottom: "72px" }}>
       <style>{`
-        .services-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 32px;
+        .services-wrap {
           max-width: 1024px;
           margin: 0 auto;
           padding: 0 24px;
+        }
+        .services-intro {
+          margin-bottom: 36px;
+          max-width: 520px;
+        }
+        .services-kicker {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #64748b;
+          margin: 0 0 8px 0;
+        }
+        .services-heading {
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 28px;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.02em;
+          margin: 0;
+          line-height: 1.2;
+        }
+        .services-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1px;
+          background: #cbd5e1;
+          border: 1px solid #cbd5e1;
         }
         @media (min-width: 768px) {
           .services-grid {
@@ -52,92 +81,108 @@ export default function ServicesSection() {
         }
         .service-card {
           background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
-          padding: 32px;
+          padding: 28px 28px 24px;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          min-height: 220px;
+          text-decoration: none;
+          color: inherit;
+          transition: background 0.15s ease;
+          position: relative;
         }
         .service-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
-          border-color: #2563eb;
-        }
-        .service-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
           background: #f8fafc;
-          border: 1px solid #f1f5f9;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #0f172a;
-          margin-bottom: 24px;
-          transition: all 0.3s ease;
         }
-        .service-card:hover .service-icon-wrapper {
-          background: #0f172a;
-          color: #ffffff;
+        .service-card:focus-visible {
+          outline: 2px solid #2563eb;
+          outline-offset: -2px;
+          z-index: 1;
+        }
+        .service-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 18px;
+        }
+        .service-index {
+          font-size: 12px;
+          font-weight: 700;
+          color: #94a3b8;
+          font-variant-numeric: tabular-nums;
+        }
+        .service-icon {
+          color: #64748b;
+          flex-shrink: 0;
+        }
+        .service-card:hover .service-icon {
+          color: #0f172a;
+        }
+        .service-accent {
+          width: 28px;
+          height: 3px;
+          margin-bottom: 14px;
         }
         .service-title {
-          font-size: 20px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 18px;
           font-weight: 700;
           color: #0f172a;
-          margin-bottom: 12px;
-          line-height: 1.4;
+          margin: 0 0 10px 0;
+          line-height: 1.35;
+          letter-spacing: -0.01em;
         }
         .service-description {
-          font-size: 15px;
+          font-size: 14px;
           color: #64748b;
           line-height: 1.6;
-          margin-bottom: 28px;
+          margin: 0 0 24px 0;
           flex-grow: 1;
         }
-        .service-btn {
-          width: 100%;
-          padding: 14px 24px;
-          border-radius: 12px;
+        .service-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
           font-weight: 700;
-          font-size: 15px;
-          text-align: center;
-          text-decoration: none;
-          transition: all 0.2s ease;
-          display: inline-block;
-          box-sizing: border-box;
+          color: #0f172a;
+          border-bottom: 1px solid #cbd5e1;
+          padding-bottom: 2px;
+          align-self: flex-start;
+          transition: border-color 0.15s ease, color 0.15s ease;
         }
-        .btn-primary {
-          background: #0f172a;
-          color: #ffffff;
-          border: 1px solid #0f172a;
-        }
-        .btn-primary:hover {
-          background: #2563eb;
-          border-color: #2563eb;
-          color: #ffffff;
+        .service-card:hover .service-cta {
+          border-color: #0f172a;
+          color: #0f172a;
         }
       `}</style>
-      <div className="services-grid">
-        {services.map((service, index) => {
-          const Icon = service.icon;
-          return (
-            <div key={index} className="service-card">
-              <div>
-                <div className="service-icon-wrapper">
-                  <Icon size={28} />
+
+      <div className="services-wrap">
+        <div className="services-intro">
+          <p className="services-kicker">What we handle</p>
+          <h2 className="services-heading">Cards, tests, courses — sorted</h2>
+        </div>
+
+        <div className="services-grid">
+          {services.map((service, index) => {
+            const Icon = service.icon;
+            return (
+              <a key={service.title} href={service.link} className="service-card">
+                <div className="service-top">
+                  <span className="service-index">0{index + 1}</span>
+                  <Icon size={20} className="service-icon" strokeWidth={1.75} />
                 </div>
+                <div className="service-accent" style={{ background: service.accent }} />
                 <h3 className="service-title">{service.title}</h3>
                 <p className="service-description">{service.description}</p>
-              </div>
-              <a href={service.link} className="service-btn btn-primary">
-                {service.cta}
+                <span className="service-cta">
+                  {service.cta}
+                  <ArrowUpRight size={14} strokeWidth={2.25} />
+                </span>
               </a>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
   );

@@ -14,8 +14,8 @@ export default function CscsGreenCardPage() {
       easyApplyTitle="Green Labourer Card"
       easyApplySub="Easy apply for CSCS Green Card - Labourers Card."
       requirements={[
-        { title: "CITB Test (Operatives)", link: "#citb" },
-        { title: "Health & Safety Awareness Course", link: "#course" },
+        { title: "CITB Test (Operatives)", link: "/book-citb-test" },
+        { title: "Health & Safety Awareness Course", link: "/health-safety-awareness" },
       ]}
       extraContent={
         <div className="max-w-none text-slate-700">
@@ -256,7 +256,7 @@ export default function CscsGreenCardPage() {
                   <span>Approved Qualifications List</span>
                 </h4>
                 <p className="text-[14px] text-slate-500 mb-4 leading-relaxed">
-                  All applicants must pass the <a href="#citb" className="text-emerald-600 font-bold hover:underline">CITB health, safety and environment test for operatives</a> and hold any one of the following:
+                  All applicants must pass the <a href="/book-citb-test" className="text-emerald-600 font-bold hover:underline">CITB health, safety and environment test for operatives</a> and hold any one of the following:
                 </p>
                 <ul className="info-bullet-list">
                   <li>An RQF Level 1/SCQF Level 4 Award in Health and Safety in a Construction Environment</li>
@@ -265,7 +265,7 @@ export default function CscsGreenCardPage() {
                 </ul>
                 <p className="text-[14px] text-slate-600 mt-6 leading-relaxed">
                   To obtain one of the required qualifications listed above, please visit our{" "}
-                  <a href="#course" className="text-emerald-600 font-bold hover:underline">
+                  <a href="/health-safety-awareness" className="text-emerald-600 font-bold hover:underline">
                     Health and Safety Awareness Course
                   </a>{" "}
                   booking portal.
@@ -300,7 +300,7 @@ export default function CscsGreenCardPage() {
               </p>
               <p className="text-sm font-bold text-slate-700" style={{ marginTop: "20px" }}>
                 Still not sure which test to take?{" "}
-                <a href="#contact" className="text-blue-600 hover:underline">
+                <a href="/#contact" className="text-blue-600 hover:underline">
                   Contact Support
                 </a>
                 .

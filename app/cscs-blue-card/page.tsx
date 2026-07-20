@@ -14,8 +14,8 @@ export default function CscsBlueCardPage() {
       easyApplyTitle="Blue Skilled Worker Card"
       easyApplySub="Easy apply for CSCS Blue Card - Skilled Worker."
       requirements={[
-        { title: "CITB Test (Operatives)", link: "#citb" },
-        { title: "NVQ Level 2 Qualification", link: "#nvq2" },
+        { title: "CITB Test (Operatives)", link: "/book-citb-test" },
+        { title: "NVQ Level 2 Qualification", link: "/nvq-level-2" },
       ]}
       extraContent={
         <div className="max-w-none text-slate-700">
@@ -170,7 +170,7 @@ export default function CscsBlueCardPage() {
               </p>
               <p className="text-[14.5px] text-slate-600 leading-relaxed">
                 For more information about registering (enrollment) for a qualification, please visit{" "}
-                <a href="#nvq2" className="text-blue-600 font-bold hover:underline">
+                <a href="/nvq-level-2" className="text-blue-600 font-bold hover:underline">
                   NVQ Level 2
                 </a>.
               </p>
@@ -186,7 +186,7 @@ export default function CscsBlueCardPage() {
             <div className="booking-panel text-[14.5px] text-slate-600 space-y-6">
               <p>
                 <strong>CITB Health, Safety & Environment Test:</strong><br />
-                All applicants must have passed the <a href="#citb" className="text-blue-600 font-bold hover:underline">CITB health, safety and environment test</a> within the last 2 years, at the relevant level for the occupation being applied for. To find out which level of test is required please use our Card Finder.
+                All applicants must have passed the <a href="/book-citb-test" className="text-blue-600 font-bold hover:underline">CITB health, safety and environment test</a> within the last 2 years, at the relevant level for the occupation being applied for. To find out which level of test is required please use our Card Finder.
               </p>
               <p>
                 <strong>CSCS Booking Fee:</strong><br />
@@ -194,7 +194,7 @@ export default function CscsBlueCardPage() {
               </p>
               <p className="text-sm font-bold text-slate-700" style={{ marginTop: "20px" }}>
                 Still not sure which test to take?{" "}
-                <a href="#contact" className="text-blue-600 hover:underline">
+                <a href="/#contact" className="text-blue-600 hover:underline">
                   Contact Support
                 </a>.
               </p>

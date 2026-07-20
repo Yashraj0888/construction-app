@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { syncEnquiry } from "@/lib/enquiries";
+import { isValidEmail, isValidPhone, isValidUkPostcode, normalizePostcode } from "@/lib/validation";
 import { Mail, Phone, Calendar, ClipboardCheck, ArrowLeft, Send, User, Truck, Lock, CheckCircle } from "lucide-react";
 
 // Define Zod Validation Schema
@@ -17,8 +19,18 @@ const cscsFormSchema = z.object({
   dobMonth: z.string().min(1, { message: "Please select a birth month." }),
   dobYear: z.string().min(1, { message: "Please select a birth year." }),
   niNumber: z.string().optional(),
-  phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
-  emailAddress: z.string().email({ message: "Please enter a valid email address." }),
+  phoneNumber: z
+    .string()
+    .min(1, { message: "Phone number is required." })
+    .refine((v) => isValidPhone(v), {
+      message: "Enter a valid phone number (e.g. 07123456789 or +447123456789).",
+    }),
+  emailAddress: z
+    .string()
+    .min(1, { message: "Email address is required." })
+    .refine((v) => isValidEmail(v), {
+      message: "Enter a valid email address (e.g. name@domain.com).",
+    }),
   applicationType: z.enum(["new", "renew", "lost"] as const, {
     message: "Please select an application type.",
   }),
@@ -169,6 +181,29 @@ function ApplyCscsForm() {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("cscs_temp_form_data", JSON.stringify(updated));
       }
+
+      // Log / update enquiry the moment they agree to terms
+      if (name === "agreedToTerms" && val === true) {
+        void syncEnquiry({
+          enquiry_type: "cscs_card",
+          product: updated.cardType || "CSCS Card",
+          source_path: "/apply-cscs",
+          title: updated.title || null,
+          first_name: updated.firstName || null,
+          middle_name: updated.middleName || null,
+          last_name: updated.lastName || null,
+          email: updated.emailAddress || null,
+          phone: updated.phoneNumber || null,
+          status: "in_progress",
+          agreed_to_terms: true,
+          payload: {
+            trigger: "terms_accepted",
+            step: 1,
+            form: updated,
+          },
+        });
+      }
+
       return updated;
     });
     // Clear error for this field dynamically
@@ -223,6 +258,24 @@ function ApplyCscsForm() {
     }
 
     setErrors({});
+    void syncEnquiry({
+      enquiry_type: "cscs_card",
+      product: formData.cardType || "CSCS Card",
+      source_path: "/apply-cscs",
+      title: formData.title || null,
+      first_name: formData.firstName || null,
+      middle_name: formData.middleName || null,
+      last_name: formData.lastName || null,
+      email: formData.emailAddress || null,
+      phone: formData.phoneNumber || null,
+      status: "in_progress",
+      agreed_to_terms: formData.agreedToTerms,
+      payload: {
+        trigger: "step_advance",
+        step: 2,
+        form: formData,
+      },
+    });
     setStep(2);
   };
 
@@ -239,7 +292,9 @@ function ApplyCscsForm() {
       newErrors.county = "Please enter your county.";
     }
     if (!additionalData.postcode.trim()) {
-      newErrors.postcode = "Please enter your postcode.";
+      newErrors.postcode = "Postcode is required.";
+    } else if (!isValidUkPostcode(additionalData.postcode)) {
+      newErrors.postcode = "Enter a valid UK postcode (e.g. SW1A 1AA).";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -247,7 +302,29 @@ function ApplyCscsForm() {
       return;
     }
 
+    const normalizedPostcode = normalizePostcode(additionalData.postcode);
+    setAdditionalData((prev) => ({ ...prev, postcode: normalizedPostcode }));
+
     setStep2Errors({});
+    void syncEnquiry({
+      enquiry_type: "cscs_card",
+      product: formData.cardType || "CSCS Card",
+      source_path: "/apply-cscs",
+      title: formData.title || null,
+      first_name: formData.firstName || null,
+      middle_name: formData.middleName || null,
+      last_name: formData.lastName || null,
+      email: formData.emailAddress || null,
+      phone: formData.phoneNumber || null,
+      status: "in_progress",
+      agreed_to_terms: true,
+      payload: {
+        trigger: "step_advance",
+        step: 3,
+        form: formData,
+        address: { ...additionalData, postcode: normalizedPostcode },
+      },
+    });
     setStep(3);
   };
 
@@ -1136,7 +1213,9 @@ function ApplyCscsForm() {
                         <input
                           type="tel"
                           name="phoneNumber"
-                          placeholder="e.g. 2080995236"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="e.g. 07123456789"
                           value={formData.phoneNumber}
                           onChange={handleInputChange}
                           className={`input-control ${errors.phoneNumber ? "has-error" : ""}`}
@@ -1156,6 +1235,8 @@ function ApplyCscsForm() {
                         <input
                           type="email"
                           name="emailAddress"
+                          inputMode="email"
+                          autoComplete="email"
                           placeholder="yourname@domain.com"
                           value={formData.emailAddress}
                           onChange={handleInputChange}
@@ -1418,11 +1499,17 @@ function ApplyCscsForm() {
                       <div>
                         <input
                           type="text"
-                          placeholder="Postcode"
+                          autoComplete="postal-code"
+                          placeholder="e.g. SW1A 1AA"
                           value={additionalData.postcode}
                           onChange={(e) => {
                             handleAdditionalChange("postcode", e.target.value);
                             if (step2Errors.postcode) setStep2Errors(prev => ({ ...prev, postcode: "" }));
+                          }}
+                          onBlur={() => {
+                            if (additionalData.postcode.trim() && isValidUkPostcode(additionalData.postcode)) {
+                              handleAdditionalChange("postcode", normalizePostcode(additionalData.postcode));
+                            }
                           }}
                           className={`input-control ${step2Errors.postcode ? "has-error" : ""}`}
                         />
@@ -1573,7 +1660,28 @@ function ApplyCscsForm() {
                       {/* Right panel (Sidebar buttons) */}
                       <div className="step3-sidebar">
                         <button 
-                          onClick={() => setStep(4)} 
+                          onClick={() => {
+                            void syncEnquiry({
+                              enquiry_type: "cscs_card",
+                              product: formData.cardType || "CSCS Card",
+                              source_path: "/apply-cscs",
+                              title: formData.title || null,
+                              first_name: formData.firstName || null,
+                              middle_name: formData.middleName || null,
+                              last_name: formData.lastName || null,
+                              email: formData.emailAddress || null,
+                              phone: formData.phoneNumber || null,
+                              status: "new",
+                              agreed_to_terms: true,
+                              payload: {
+                                trigger: "form_submitted",
+                                step: 4,
+                                form: formData,
+                                address: additionalData,
+                              },
+                            });
+                            setStep(4);
+                          }} 
                           className="step3-btn-pay"
                         >
                           Confirm and Pay

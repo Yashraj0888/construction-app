@@ -5,14 +5,26 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import { createEnquiry } from "@/lib/enquiries";
+import { isValidEmail, isValidPhone, isValidUkPostcode, normalizePostcode } from "@/lib/validation";
 import { Mail, Phone, ArrowLeft, ArrowRight, CheckCircle, Info, ClipboardCheck, User, Truck, Lock } from "lucide-react";
 
 // Define Zod Validation Schema for Easy Apply
 const easyApplySchema = z.object({
   firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
   lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
-  phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
-  emailAddress: z.string().email({ message: "Please enter a valid email address." }),
+  phoneNumber: z
+    .string()
+    .min(1, { message: "Phone number is required." })
+    .refine((v) => isValidPhone(v), {
+      message: "Enter a valid phone number (e.g. 07123456789 or +447123456789).",
+    }),
+  emailAddress: z
+    .string()
+    .min(1, { message: "Email address is required." })
+    .refine((v) => isValidEmail(v), {
+      message: "Enter a valid email address (e.g. name@domain.com).",
+    }),
 });
 
 type FormErrors = {
@@ -130,7 +142,7 @@ export default function CardDetailPage({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validation = easyApplySchema.safeParse(formData);
     if (!validation.success) {
@@ -146,6 +158,25 @@ export default function CardDetailPage({
     }
 
     setErrors({});
+
+    await createEnquiry({
+      enquiry_type: "cscs_card",
+      product: cardName,
+      source_path: typeof window !== "undefined" ? window.location.pathname : null,
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.emailAddress,
+      phone: formData.phoneNumber,
+      status: "in_progress",
+      agreed_to_terms: false,
+      payload: {
+        trigger: "easy_apply",
+        cardType: cardType,
+        cardName,
+        step: "easy_apply",
+      },
+    });
+
     router.push(`/apply-cscs?cardType=${encodeURIComponent(cardName)}`);
   };
 
@@ -162,7 +193,9 @@ export default function CardDetailPage({
       newErrors.county = "Please enter your county.";
     }
     if (!additionalData.postcode.trim()) {
-      newErrors.postcode = "Please enter your postcode.";
+      newErrors.postcode = "Postcode is required.";
+    } else if (!isValidUkPostcode(additionalData.postcode)) {
+      newErrors.postcode = "Enter a valid UK postcode (e.g. SW1A 1AA).";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -170,6 +203,7 @@ export default function CardDetailPage({
       return;
     }
 
+    setAdditionalData((prev) => ({ ...prev, postcode: normalizePostcode(prev.postcode) }));
     setStep2Errors({});
     setStep(3);
   };
@@ -259,120 +293,170 @@ export default function CardDetailPage({
           
           /* Visual Mockup Container */
           .detail-mockup-panel {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            padding: 36px 16px;
+            background: #e8edf2;
+            border: 1px solid #d4dae3;
+            border-radius: 4px;
+            padding: 48px 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+            box-shadow: none;
           }
           
           .cscs-large-mockup {
             width: 100%;
-            max-width: 440px;
-            height: 250px;
-            border-radius: 14px;
+            max-width: 420px;
+            height: 248px;
+            border-radius: 8px;
             position: relative;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(0, 0, 0, 0.22);
             box-sizing: border-box;
+            transform: perspective(1100px) rotateY(-6deg) rotateX(3deg);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.28),
+              inset 0 -10px 24px rgba(0,0,0,0.12),
+              10px 18px 28px rgba(15, 23, 42, 0.22),
+              2px 4px 0 rgba(15, 23, 42, 0.06);
+          }
+          .cscs-large-mockup::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              125deg,
+              rgba(255,255,255,0.22) 0%,
+              rgba(255,255,255,0.05) 28%,
+              transparent 48%,
+              rgba(0,0,0,0.06) 100%
+            );
+            pointer-events: none;
+            z-index: 2;
+          }
+          .cscs-large-mockup::after {
+            content: "";
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 45%;
+            height: 140%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255,255,255,0.12),
+              transparent
+            );
+            transform: rotate(18deg);
+            pointer-events: none;
+            z-index: 3;
           }
           
           .large-mockup-header {
-            height: 40px;
+            height: 36px;
             display: flex;
             align-items: center;
-            padding: 0 20px;
+            padding: 14px 0 0 16px;
+            position: relative;
+            z-index: 1;
           }
           
           .large-mockup-stripes {
             display: flex;
-            gap: 3px;
+            flex-direction: column;
+            gap: 4px;
           }
           
           .large-mockup-stripe {
-            width: 18px;
-            height: 6px;
-            border-radius: 1px;
-            background: rgba(0,0,0,0.15);
+            width: 42px;
+            height: 5px;
+            border-radius: 0;
+            background: rgba(0,0,0,0.28);
           }
           .cscs-large-mockup-white .large-mockup-stripe {
-            background: #000000;
+            background: #0f172a;
           }
           
           .large-mockup-body {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding: 0 18px 10px 18px;
+            padding: 0 16px 12px 16px;
             flex-grow: 1;
+            position: relative;
+            z-index: 1;
           }
           
           .large-mockup-left {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             align-self: stretch;
             justify-content: space-between;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
+            max-width: 58%;
           }
           
           .large-mockup-chip {
-            width: 44px;
-            height: 32px;
-            background: rgba(255,255,255,0.4);
-            border-radius: 4px;
+            width: 40px;
+            height: 30px;
+            border-radius: 3px;
+            background: linear-gradient(145deg, #f5e6b8 0%, #c9a227 45%, #8a6d1b 100%);
+            border: 1px solid rgba(0,0,0,0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
           }
           .cscs-large-mockup-white .large-mockup-chip {
-            background: #cbd5e1;
+            background: linear-gradient(145deg, #e2e8f0 0%, #94a3b8 100%);
           }
           
           .large-mockup-name {
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 800;
-            color: #000000;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 4px 8px;
-            border-radius: 3px;
+            color: #0f172a;
+            background: #f1f5f9;
+            padding: 5px 8px;
+            border-radius: 2px;
             white-space: nowrap;
-            letter-spacing: 0.02em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: 0.03em;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
           }
           
           .large-mockup-photo-box {
-            width: 110px;
-            height: 135px;
-            background: #cbd5e1;
-            border: 2px solid #ffffff;
-            border-radius: 6px;
+            width: 104px;
+            height: 128px;
+            background: #94a3b8;
+            border: 2px solid #f8fafc;
+            border-radius: 2px;
             overflow: hidden;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
           }
           
           .large-mockup-footer {
-            height: 50px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 900;
-            font-size: 18px;
+            font-weight: 800;
+            font-size: 15px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            letter-spacing: 0.08em;
+            border-top: 1px solid rgba(0, 0, 0, 0.12);
+            position: relative;
+            z-index: 1;
           }
           
           /* Easy Apply Card */
           .easy-apply-card {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            padding: 36px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #d4dae3;
+            border-radius: 4px;
+            padding: 32px 28px;
+            box-shadow: none;
           }
           
           .easy-apply-title {
@@ -463,76 +547,86 @@ export default function CardDetailPage({
           
           .requirements-section {
             margin-top: 48px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid #d4dae3;
             padding-top: 40px;
           }
           
           .req-title {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
             color: #0f172a;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
           }
           
           .req-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-          }
-          @media (min-width: 640px) {
-            .req-grid {
-              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            }
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border: 1px solid #d4dae3;
+            background: #d4dae3;
           }
           
           .req-card {
             background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 24px;
+            border: none;
+            border-radius: 0;
+            padding: 18px 20px;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            text-align: left;
+            gap: 16px;
+            box-shadow: none;
+          }
+          .req-card + .req-card {
+            border-top: 1px solid #d4dae3;
           }
           
           .req-icon-wrapper {
-            width: 48px;
-            height: 48px;
-            background: #eff6ff;
-            color: #2563eb;
-            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            background: #f1f5f9;
+            color: #334155;
+            border-radius: 3px;
+            border: 1px solid #e2e8f0;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 16px;
+            margin-bottom: 0;
+            flex-shrink: 0;
           }
           
           .req-card-title {
             font-size: 15px;
             font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 16px;
+            color: #0f172a;
+            margin-bottom: 0;
+            flex-grow: 1;
+            line-height: 1.35;
           }
           
           .req-btn {
-            width: 100%;
-            padding: 8px 16px;
-            background: #2563eb;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            font-size: 13.5px;
+            width: auto;
+            padding: 8px 14px;
+            background: transparent;
+            color: #0f172a;
+            border: 1px solid #94a3b8;
+            border-radius: 3px;
+            font-size: 13px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.15s ease, border-color 0.15s ease;
             text-decoration: none;
             display: inline-block;
+            white-space: nowrap;
+            flex-shrink: 0;
           }
           .req-btn:hover {
-            background: #1d4ed8;
+            background: #0f172a;
+            border-color: #0f172a;
+            color: #ffffff;
           }
 
           /* Step 2 Form Styling */
@@ -673,46 +767,68 @@ export default function CardDetailPage({
             width: 92%;
             max-width: 300px;
             height: 170px;
-            border-radius: 10px;
+            border-radius: 7px;
             position: relative;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.2);
             box-sizing: border-box;
             flex-shrink: 0;
+            transform: perspective(900px) rotateY(-4deg) rotateX(2deg);
+            box-shadow:
+              inset 0 1px 0 rgba(255,255,255,0.25),
+              inset 0 -8px 18px rgba(0,0,0,0.1),
+              6px 12px 20px rgba(15, 23, 42, 0.18);
+          }
+          .cscs-mockup::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              125deg,
+              rgba(255,255,255,0.2) 0%,
+              transparent 42%,
+              rgba(0,0,0,0.05) 100%
+            );
+            pointer-events: none;
+            z-index: 2;
           }
           
           .mockup-header {
             height: 24px;
             display: flex;
             align-items: center;
-            padding: 0 8px;
+            padding: 10px 0 0 10px;
             position: relative;
+            z-index: 1;
           }
           
           .mockup-stripes {
             display: flex;
-            gap: 2px;
+            flex-direction: column;
+            gap: 3px;
           }
           .mockup-stripe {
-            width: 8px;
-            height: 4px;
-            border-radius: 1px;
+            width: 22px;
+            height: 3px;
+            border-radius: 0;
+            background: rgba(0,0,0,0.28);
           }
           
           .mockup-card-white .mockup-stripe {
-            background: #000000;
+            background: #0f172a;
           }
           
           .mockup-body {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding: 0 12px 6px 12px;
+            padding: 0 10px 8px 10px;
             flex-grow: 1;
+            position: relative;
+            z-index: 1;
           }
           
           .mockup-left {
@@ -726,32 +842,34 @@ export default function CardDetailPage({
           }
           
           .mockup-chip {
-            width: 28px;
-            height: 22px;
-            background: #cbd5e1;
-            border-radius: 3px;
+            width: 26px;
+            height: 20px;
+            background: linear-gradient(145deg, #f5e6b8 0%, #c9a227 45%, #8a6d1b 100%);
+            border-radius: 2px;
+            border: 1px solid rgba(0,0,0,0.15);
           }
           
           .mockup-name {
             font-size: 9px;
             font-weight: 800;
-            color: #000000;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 2px 4px;
-            border-radius: 2px;
+            color: #0f172a;
+            background: #f1f5f9;
+            padding: 2px 5px;
+            border-radius: 1px;
             white-space: nowrap;
             letter-spacing: 0.02em;
+            border: 1px solid rgba(0,0,0,0.08);
           }
           
           .mockup-photo-box {
-            width: 64px;
-            height: 78px;
-            background: #cbd5e1;
-            border: 1.5px solid #ffffff;
-            border-radius: 5px;
+            width: 60px;
+            height: 74px;
+            background: #94a3b8;
+            border: 1.5px solid #f8fafc;
+            border-radius: 1px;
             overflow: hidden;
             flex-shrink: 0;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
           }
           .mockup-photo {
             width: 100%;
@@ -760,15 +878,17 @@ export default function CardDetailPage({
           }
           
           .mockup-footer {
-            height: 32px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 11.5px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            letter-spacing: 0.06em;
+            border-top: 1px solid rgba(0, 0, 0, 0.12);
+            position: relative;
+            z-index: 1;
           }
 
           /* Step 3 Confirm and Pay Page Styles */
@@ -983,16 +1103,17 @@ export default function CardDetailPage({
                   >
                     <div className="large-mockup-header">
                       <div className="large-mockup-stripes">
-                        <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
-                        <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
-                        <div className="large-mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "16px", height: "4px" }}></div>
+                        <div className="large-mockup-stripe" />
+                        <div className="large-mockup-stripe" />
+                        <div className="large-mockup-stripe" />
+                        <div className="large-mockup-stripe" />
                       </div>
                     </div>
 
                     <div className="large-mockup-body">
                       <div className="large-mockup-left">
-                        <div className="large-mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
-                        <div className="large-mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>
+                        <div className="large-mockup-chip" />
+                        <div className="large-mockup-name">
                           {(formData.firstName || formData.lastName) ? `${formData.firstName} ${formData.lastName}`.toUpperCase() : "FIRSTNAME SURNAME"}
                         </div>
                       </div>
@@ -1146,15 +1267,16 @@ export default function CardDetailPage({
                 >
                   <div className="mockup-header">
                     <div className="mockup-stripes">
-                      <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                      <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                      <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
+                      <div className="mockup-stripe" />
+                      <div className="mockup-stripe" />
+                      <div className="mockup-stripe" />
+                      <div className="mockup-stripe" />
                     </div>
                   </div>
                   <div className="mockup-body">
                     <div className="mockup-left">
-                      <div className="mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
-                      <div className="mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>
+                      <div className="mockup-chip" />
+                      <div className="mockup-name">
                         {(formData.firstName || formData.lastName) ? `${formData.firstName} ${formData.lastName}`.toUpperCase() : "FIRSTNAME SURNAME"}
                       </div>
                     </div>
@@ -1369,28 +1491,29 @@ export default function CardDetailPage({
                       className={`cscs-mockup ${isWhiteCard ? "mockup-card-white" : ""}`}
                       style={{ background: bgHex }}
                     >
-                      <div className="mockup-header">
-                        <div className="mockup-stripes">
-                          <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                          <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                          <div className="mockup-stripe" style={{ background: isWhiteCard ? "#000000" : "rgba(0,0,0,0.15)", width: "10px", height: "3px" }}></div>
-                        </div>
+                  <div className="mockup-header">
+                    <div className="mockup-stripes">
+                      <div className="mockup-stripe" />
+                      <div className="mockup-stripe" />
+                      <div className="mockup-stripe" />
+                      <div className="mockup-stripe" />
+                    </div>
+                  </div>
+                  <div className="mockup-body">
+                    <div className="mockup-left">
+                      <div className="mockup-chip" />
+                      <div className="mockup-name">
+                        {`${formData.firstName} ${formData.lastName}`.toUpperCase()}
                       </div>
-                      <div className="mockup-body">
-                        <div className="mockup-left">
-                          <div className="mockup-chip" style={{ background: isWhiteCard ? "#cbd5e1" : "rgba(255,255,255,0.4)" }}></div>
-                          <div className="mockup-name" style={{ color: isWhiteCard ? "#0f172a" : "#000000" }}>
-                            {`${formData.firstName} ${formData.lastName}`.toUpperCase()}
-                          </div>
-                        </div>
-                        <div className="mockup-photo-box">
-                          <img 
-                            src="/worker_portrait.png" 
-                            alt="" 
-                            className="mockup-photo" 
-                          />
-                        </div>
-                      </div>
+                    </div>
+                    <div className="mockup-photo-box">
+                      <img 
+                        src="/worker_portrait.png" 
+                        alt="" 
+                        className="mockup-photo"
+                      />
+                    </div>
+                  </div>
                       <div 
                         className="mockup-footer"
                         style={{ 

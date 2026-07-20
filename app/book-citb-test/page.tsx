@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import DatePickerField from "../components/DatePickerField";
+import { syncEnquiry } from "@/lib/enquiries";
+import { isValidEmail, isValidPhone, isValidUkPostcode, normalizePostcode } from "@/lib/validation";
 import { 
   Lock, 
   CheckCircle, 
@@ -31,13 +34,28 @@ const citbFormSchema = z.object({
   dobMonth: z.string().min(1, { message: "Please select a birth month." }),
   dobYear: z.string().min(1, { message: "Please select a birth year." }),
   niNumber: z.string().optional(),
-  phoneNumber: z.string().min(10, { message: "Phone number must be at least 10 digits." }),
-  emailAddress: z.string().email({ message: "Please enter a valid email address." }),
+  phoneNumber: z
+    .string()
+    .min(1, { message: "Phone number is required." })
+    .refine((v) => isValidPhone(v), {
+      message: "Enter a valid phone number (e.g. 07123456789 or +447123456789).",
+    }),
+  emailAddress: z
+    .string()
+    .min(1, { message: "Email address is required." })
+    .refine((v) => isValidEmail(v), {
+      message: "Enter a valid email address (e.g. name@domain.com).",
+    }),
   addressLine1: z.string().min(3, { message: "Address line 1 must be at least 3 characters." }),
   locality: z.string().optional(),
   city: z.string().min(2, { message: "Town/City is required." }),
   county: z.string().min(2, { message: "County is required." }),
-  postcode: z.string().min(5, { message: "Please enter a valid postcode." }),
+  postcode: z
+    .string()
+    .min(1, { message: "Postcode is required." })
+    .refine((v) => isValidUkPostcode(v), {
+      message: "Enter a valid UK postcode (e.g. SW1A 1AA).",
+    }),
   agreedToTerms: z.literal(true, {
     message: "You must agree to the Terms and Conditions and Privacy Policy.",
   }),
@@ -141,6 +159,28 @@ function BookCitbTestForm() {
       };
       // Auto-save to sessionStorage
       sessionStorage.setItem("cscs_temp_citb_test_data", JSON.stringify(updated));
+
+      if (name === "agreedToTerms" && checked === true) {
+        void syncEnquiry({
+          enquiry_type: "citb_test",
+          product: "CITB Health Safety & Environment Test",
+          source_path: "/book-citb-test",
+          title: updated.title || null,
+          first_name: updated.firstName || null,
+          middle_name: updated.middleName || null,
+          last_name: updated.lastName || null,
+          email: updated.emailAddress || null,
+          phone: updated.phoneNumber || null,
+          status: "in_progress",
+          agreed_to_terms: true,
+          payload: {
+            trigger: "terms_accepted",
+            step: 1,
+            form: updated,
+          },
+        });
+      }
+
       return updated;
     });
 
@@ -260,6 +300,27 @@ function BookCitbTestForm() {
       return;
     }
     setTestDetailErrors({});
+    void syncEnquiry({
+      enquiry_type: "citb_test",
+      product: testDetails.testType
+        ? `CITB Test - ${testDetails.testType}`
+        : "CITB Health Safety & Environment Test",
+      source_path: "/book-citb-test",
+      title: formData.title || null,
+      first_name: formData.firstName || null,
+      middle_name: formData.middleName || null,
+      last_name: formData.lastName || null,
+      email: formData.emailAddress || null,
+      phone: formData.phoneNumber || null,
+      status: "in_progress",
+      agreed_to_terms: true,
+      payload: {
+        trigger: "step_advance",
+        step: 3,
+        form: formData,
+        testDetails,
+      },
+    });
     setStep(3);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -288,20 +349,66 @@ function BookCitbTestForm() {
       return;
     }
 
+    const normalizedForm = {
+      ...formData,
+      postcode: normalizePostcode(formData.postcode),
+      emailAddress: formData.emailAddress.trim(),
+    };
+    setFormData(normalizedForm);
+
     // Go to test details step
+    void syncEnquiry({
+      enquiry_type: "citb_test",
+      product: "CITB Health Safety & Environment Test",
+      source_path: "/book-citb-test",
+      title: normalizedForm.title || null,
+      first_name: normalizedForm.firstName || null,
+      middle_name: normalizedForm.middleName || null,
+      last_name: normalizedForm.lastName || null,
+      email: normalizedForm.emailAddress || null,
+      phone: normalizedForm.phoneNumber || null,
+      status: "in_progress",
+      agreed_to_terms: true,
+      payload: {
+        trigger: "step_advance",
+        step: 2,
+        form: normalizedForm,
+      },
+    });
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleFinalConfirm = () => {
     setLoading(true);
-    // Simulate submission
-    setTimeout(() => {
-      setLoading(false);
-      setStep(4);
-      sessionStorage.removeItem("cscs_temp_citb_test_data");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 1500);
+    void syncEnquiry({
+      enquiry_type: "citb_test",
+      product: testDetails.testType
+        ? `CITB Test - ${testDetails.testType}`
+        : "CITB Health Safety & Environment Test",
+      source_path: "/book-citb-test",
+      title: formData.title || null,
+      first_name: formData.firstName || null,
+      middle_name: formData.middleName || null,
+      last_name: formData.lastName || null,
+      email: formData.emailAddress || null,
+      phone: formData.phoneNumber || null,
+      status: "new",
+      agreed_to_terms: true,
+      payload: {
+        trigger: "form_submitted",
+        step: 4,
+        form: formData,
+        testDetails,
+      },
+    }).finally(() => {
+      setTimeout(() => {
+        setLoading(false);
+        setStep(4);
+        sessionStorage.removeItem("cscs_temp_citb_test_data");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 600);
+    });
   };
 
   const faqs: FAQItem[] = [
@@ -897,7 +1004,9 @@ function BookCitbTestForm() {
                     <input
                       type="tel"
                       name="phoneNumber"
-                      placeholder="e.g. 7123456789"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="e.g. 07123456789"
                       value={formData.phoneNumber}
                       onChange={handleInputChange}
                       className={`input-control ${errors.phoneNumber ? "has-error" : ""}`}
@@ -912,6 +1021,8 @@ function BookCitbTestForm() {
                   <input
                     type="email"
                     name="emailAddress"
+                    inputMode="email"
+                    autoComplete="email"
                     placeholder="yourname@domain.com"
                     value={formData.emailAddress}
                     onChange={handleInputChange}
@@ -979,9 +1090,15 @@ function BookCitbTestForm() {
                   <input
                     type="text"
                     name="postcode"
-                    placeholder="Postcode"
+                    autoComplete="postal-code"
+                    placeholder="e.g. SW1A 1AA"
                     value={formData.postcode}
                     onChange={handleInputChange}
+                    onBlur={() => {
+                      if (formData.postcode.trim() && isValidUkPostcode(formData.postcode)) {
+                        setFormData((prev) => ({ ...prev, postcode: normalizePostcode(prev.postcode) }));
+                      }
+                    }}
                     className={`input-control ${errors.postcode ? "has-error" : ""}`}
                     required
                   />
@@ -1222,23 +1339,25 @@ function BookCitbTestForm() {
                 <div className="field-grid" style={{ marginBottom: "8px" }}>
                   <div className="field-group">
                     <label className="field-label">Preferred Date <span style={{ color: "#ef4444" }}>*</span></label>
-                    <input
-                      type="date"
+                    <DatePickerField
                       value={testDetails.preferredDate}
-                      min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
-                      onChange={e => { setTestDetails(p => ({ ...p, preferredDate: e.target.value })); setTestDetailErrors(p => ({ ...p, preferredDate: "" })); }}
-                      className={`input-control ${testDetailErrors.preferredDate ? "has-error" : ""}`}
+                      minDate={new Date(Date.now() + 86400000)}
+                      onChange={(value) => {
+                        setTestDetails(p => ({ ...p, preferredDate: value }));
+                        setTestDetailErrors(p => ({ ...p, preferredDate: "" }));
+                      }}
+                      placeholder="Select preferred date"
+                      hasError={!!testDetailErrors.preferredDate}
                     />
                     {testDetailErrors.preferredDate && <span className="error-msg">{testDetailErrors.preferredDate}</span>}
                   </div>
                   <div className="field-group">
                     <label className="field-label">Alternate Date</label>
-                    <input
-                      type="date"
+                    <DatePickerField
                       value={testDetails.alternateDate}
-                      min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
-                      onChange={e => setTestDetails(p => ({ ...p, alternateDate: e.target.value }))}
-                      className="input-control"
+                      minDate={new Date(Date.now() + 86400000)}
+                      onChange={(value) => setTestDetails(p => ({ ...p, alternateDate: value }))}
+                      placeholder="Select alternate date"
                     />
                   </div>
                 </div>

@@ -132,7 +132,7 @@ export default function CscsRedCardPage() {
               </h4>
               <p className="text-[14.5px] text-slate-600 leading-relaxed mb-4">
                 No construction-related qualification is required for this card. However, applicants must have passed the{" "}
-                <a href="#citb" className="red-highlight-link">
+                <a href="/book-citb-test" className="red-highlight-link">
                   CITB health, safety and environment test
                 </a>{" "}
                 within the past two years.
@@ -164,7 +164,7 @@ export default function CscsRedCardPage() {
               </p>
               <p className="text-sm font-bold text-slate-700" style={{ marginTop: "20px" }}>
                 Still not sure which test to take?{" "}
-                <a href="#contact" className="red-highlight-link">
+                <a href="/#contact" className="red-highlight-link">
                   Contact Support
                 </a>.
               </p>

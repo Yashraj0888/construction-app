@@ -18,8 +18,15 @@ const navLinks = [
       { label: "All CSCS Cards", href: "/cscs-cards" },
     ],
   },
-  { label: "Construction Courses", href: "#" },
-  { label: "Group Booking", href: "#" },
+  {
+    label: "Construction Courses",
+    href: "#",
+    dropdown: [
+      { label: "Health & Safety Awareness", href: "/health-safety-awareness" },
+      { label: "NVQ Level 2", href: "/nvq-level-2" },
+    ],
+  },
+  { label: "Group Booking", href: "/group-booking" },
   { label: "Contact Us", href: "/#contact" },
 ];
 
@@ -134,7 +141,7 @@ export default function Navbar() {
                     <ChevronDown size={14} className={`transition-transform duration-200 ${activeDropdown === link.label ? "rotate-180" : ""}`} />
                   </button>
                   {activeDropdown === link.label && (
-                    <div className="absolute top-full left-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 animate-fade-in" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-200 rounded-xl shadow-xl z-50 animate-fade-in" style={{ paddingTop: "6px", paddingBottom: "6px" }}>
                       {link.dropdown.map((item) => (
                         <a
                           key={item.label}

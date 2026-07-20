@@ -208,7 +208,7 @@ export default function CscsWhiteCardPage() {
             <div className="price-panel text-[14.5px] text-slate-600">
               <p className="text-sm font-bold text-slate-700">
                 Still not sure?{" "}
-                <a href="#contact" className="text-blue-650 font-bold hover:underline">
+                <a href="/#contact" className="text-blue-650 font-bold hover:underline">
                   Contact Support
                 </a>
                 .

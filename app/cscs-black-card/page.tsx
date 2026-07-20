@@ -200,7 +200,7 @@ export default function CscsBlackCardPage() {
               </p>
               <p className="text-sm font-bold text-slate-700" style={{ marginTop: "20px" }}>
                 Still not sure?{" "}
-                <a href="#contact" className="text-blue-650 font-bold hover:underline">
+                <a href="/#contact" className="text-blue-650 font-bold hover:underline">
                   Contact Support
                 </a>
                 .

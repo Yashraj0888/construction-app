@@ -118,7 +118,7 @@ export default function CscsGoldCardPage() {
               <p>
                 <strong>CITB Health, Safety & Environment Test:</strong><br />
                 Applicants must also have passed the appropriate level{" "}
-                <a href="#citb" className="gold-highlight-link">
+                <a href="/book-citb-test" className="gold-highlight-link">
                   CITB health, safety and environment test
                 </a>{" "}
                 within the last 2 years. This must be taken at the relevant level for the occupation being applied for. To find out which level of test is required please use our Test Finder.
@@ -136,7 +136,7 @@ export default function CscsGoldCardPage() {
               </p>
               <p className="text-sm font-bold text-slate-700" style={{ marginTop: "20px" }}>
                 Still not sure which CITB test to take?{" "}
-                <a href="#contact" className="gold-highlight-link">
+                <a href="/#contact" className="gold-highlight-link">
                   Contact Support
                 </a>.
               </p>
