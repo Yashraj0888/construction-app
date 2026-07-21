@@ -66,7 +66,7 @@ function pickRow(data: z.infer<typeof enquirySchema>, payload: Record<string, un
     phone: data.phone ?? null,
     company_name: data.company_name ?? null,
     message: data.message ?? null,
-    status: data.status ?? "new",
+    status: data.status ?? "open",
     agreed_to_terms: data.agreed_to_terms ?? false,
     payload,
     updated_at: new Date().toISOString(),
@@ -130,13 +130,22 @@ export async function PATCH(req: NextRequest) {
     // Merge payload if provided so we don't wipe previous fields
     let nextPayload = rest.payload;
     if (rest.payload) {
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from("enquiries")
         .select("payload")
         .eq("id", id)
-        .single();
+        .maybeSingle();
+
+      if (existingError) {
+        console.error("enquiries lookup error:", existingError);
+        return NextResponse.json({ error: existingError.message }, { status: 500 });
+      }
+      if (!existing) {
+        return NextResponse.json({ error: "Enquiry not found" }, { status: 404 });
+      }
+
       const merged = {
-        ...((existing?.payload as Record<string, unknown>) || {}),
+        ...((existing.payload as Record<string, unknown>) || {}),
         ...rest.payload,
       };
       const sanitized = sanitizePayload(merged);
@@ -170,11 +179,14 @@ export async function PATCH(req: NextRequest) {
       .update(updates)
       .eq("id", id)
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("enquiries update error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (!data) {
+      return NextResponse.json({ error: "Enquiry not found" }, { status: 404 });
     }
 
     return NextResponse.json({ id: data.id });

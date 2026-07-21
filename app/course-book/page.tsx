@@ -114,7 +114,7 @@ function CourseBookForm() {
         last_name: lastName || null,
         email: emailAddress || null,
         phone: phoneNumber ? `${phonePrefix} ${phoneNumber}` : null,
-        status: "new",
+        status: "open",
         agreed_to_terms: true,
         payload: {
           trigger: "form_submitted",
@@ -952,7 +952,7 @@ function CourseBookForm() {
                         last_name: lastName || null,
                         email: emailAddress || null,
                         phone: phoneNumber ? `${phonePrefix} ${phoneNumber}` : null,
-                        status: "in_progress",
+                        status: "open",
                         agreed_to_terms: true,
                         payload: {
                           trigger: "terms_accepted",

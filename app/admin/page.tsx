@@ -1,17 +1,34 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, RefreshCw, LogOut, ChevronRight } from "lucide-react";
+import { Search, RefreshCw, ChevronRight } from "lucide-react";
 import CustomSelect from "./components/CustomSelect";
-import { ADMIN_CSS } from "./admin.css";
+import {
+  getListCache,
+  setListCache,
+  listCacheKey,
+  clearAdminCache,
+  type AdminCounts,
+} from "./cache";
 import {
   Enquiry,
   TYPE_LABELS,
-  STATUS_OPTIONS,
+  STATUS_TILES,
+  PipelineStatus,
   fullName,
+  formatWhen,
   statusMeta,
+  normalizePipelineStatus,
 } from "./_shared";
+
+const EMPTY_COUNTS: AdminCounts = {
+  open: 0,
+  sale: 0,
+  pending: 0,
+  contact_us: 0,
+  disputed: 0,
+};
 
 export default function AdminDashboardPage() {
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -20,48 +37,95 @@ export default function AdminDashboardPage() {
   const [loggingIn, setLoggingIn] = useState(false);
 
   const [rows, setRows] = useState<Enquiry[]>([]);
+  const [counts, setCounts] = useState<AdminCounts>(EMPTY_COUNTS);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<PipelineStatus>("open");
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
-  const loadEnquiries = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
-    setFetchError("");
-    const params = new URLSearchParams();
-    if (typeFilter !== "all") params.set("type", typeFilter);
-    if (statusFilter !== "all") params.set("status", statusFilter);
-    if (search.trim()) params.set("q", search.trim());
+  const cacheKey = useMemo(
+    () =>
+      listCacheKey({
+        type: typeFilter,
+        status: statusFilter,
+        q: search,
+      }),
+    [typeFilter, statusFilter, search]
+  );
 
-    try {
-      const res = await fetch(`/api/admin/enquiries?${params.toString()}`, { signal });
-      if (signal?.aborted) return;
-      if (res.status === 401) {
-        setAuthed(false);
+  const loadEnquiries = useCallback(
+    async (opts?: { signal?: AbortSignal; force?: boolean }) => {
+      const signal = opts?.signal;
+      const force = opts?.force ?? false;
+      setFetchError("");
+
+      const cached = getListCache(cacheKey);
+      if (cached && !force) {
+        // Session cache: serve cached list until Refresh (or full page reload).
+        setRows(cached.enquiries);
+        setCounts({ ...EMPTY_COUNTS, ...cached.counts });
+        setAuthed(true);
         setLoading(false);
         return;
+      } else if (!cached) {
+        setLoading(true);
       }
-      const json = await res.json();
-      if (!res.ok) {
-        setFetchError(json.error || "Failed to load enquiries");
+
+      const params = new URLSearchParams();
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      params.set("status", statusFilter);
+      if (search.trim()) params.set("q", search.trim());
+
+      try {
+        const res = await fetch(`/api/admin/enquiries?${params.toString()}`, {
+          signal,
+          cache: "no-store",
+        });
+        if (signal?.aborted) return;
+        if (res.status === 401) {
+          clearAdminCache();
+          setAuthed(false);
+          setLoading(false);
+          return;
+        }
+        const json = await res.json();
+        if (!res.ok) {
+          setFetchError(json.error || "Failed to load enquiries");
+          setLoading(false);
+          return;
+        }
+        const enquiries = (json.enquiries || []) as Enquiry[];
+        const nextCounts = { ...EMPTY_COUNTS, ...(json.counts || {}) };
+        setListCache(cacheKey, enquiries, nextCounts);
+        setAuthed(true);
+        setRows(enquiries);
+        setCounts(nextCounts);
         setLoading(false);
-        return;
+      } catch (err) {
+        if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
+        if (!getListCache(cacheKey)) {
+          setFetchError("Failed to load enquiries");
+        }
+        setLoading(false);
       }
-      setAuthed(true);
-      setRows((json.enquiries || []) as Enquiry[]);
-      setLoading(false);
-    } catch (err) {
-      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
-      setFetchError("Failed to load enquiries");
-      setLoading(false);
-    }
-  }, [typeFilter, statusFilter, search]);
+    },
+    [cacheKey, typeFilter, statusFilter, search]
+  );
+
+  useLayoutEffect(() => {
+    const cached = getListCache(cacheKey);
+    if (!cached) return;
+    setRows(cached.enquiries);
+    setCounts({ ...EMPTY_COUNTS, ...cached.counts });
+    setAuthed(true);
+    setLoading(false);
+  }, [cacheKey]);
 
   useEffect(() => {
     const ac = new AbortController();
-    void loadEnquiries(ac.signal);
+    void loadEnquiries({ signal: ac.signal });
     return () => ac.abort();
   }, [loadEnquiries]);
 
@@ -87,25 +151,9 @@ export default function AdminDashboardPage() {
     }
     setPassword("");
     setAuthed(true);
-    void loadEnquiries();
+    clearAdminCache();
+    void loadEnquiries({ force: true });
   };
-
-  const handleLogout = async () => {
-    await fetch("/api/admin/login", { method: "DELETE" });
-    setAuthed(false);
-    setRows([]);
-  };
-
-  const counts = useMemo(() => {
-    const byStatus: Record<string, number> = {};
-    for (const row of rows) byStatus[row.status] = (byStatus[row.status] || 0) + 1;
-    return {
-      total: rows.length,
-      new: byStatus.new || 0,
-      in_progress: byStatus.in_progress || 0,
-      contacted: byStatus.contacted || 0,
-    };
-  }, [rows]);
 
   const typeOptions = useMemo(
     () => [
@@ -115,21 +163,10 @@ export default function AdminDashboardPage() {
     []
   );
 
-  const statusFilterOptions = useMemo(
-    () => [
-      { value: "all", label: "All statuses" },
-      ...STATUS_OPTIONS.map((s) => {
-        const meta = statusMeta(s);
-        return { value: s, label: meta.label, tone: { bg: meta.bg, color: meta.color } };
-      }),
-    ],
-    []
-  );
+  const activeTile = STATUS_TILES.find((t) => t.key === statusFilter);
 
   return (
     <>
-      <style>{ADMIN_CSS}</style>
-
       {authed === false ? (
         <div className="login-wrap">
           <form className="login-card" onSubmit={handleLogin}>
@@ -171,36 +208,41 @@ export default function AdminDashboardPage() {
           <div className="admin-inner">
             <header className="admin-header">
               <div>
-                <p>Construction Card Assistance</p>
+                <p>Lead desk · Construction Card Assistance</p>
                 <h1>Enquiries</h1>
               </div>
               <div className="admin-header-actions">
-                <button type="button" className="btn" onClick={() => void loadEnquiries()}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => void loadEnquiries({ force: true })}
+                >
                   <RefreshCw size={15} /> Refresh
-                </button>
-                <button type="button" className="btn" onClick={() => void handleLogout()}>
-                  <LogOut size={15} /> Log out
                 </button>
               </div>
             </header>
 
-            <div className="stats">
-              <div className="stat">
-                <span>Showing</span>
-                <strong>{counts.total}</strong>
-              </div>
-              <div className="stat">
-                <span>New</span>
-                <strong>{counts.new}</strong>
-              </div>
-              <div className="stat">
-                <span>In progress</span>
-                <strong>{counts.in_progress}</strong>
-              </div>
-              <div className="stat">
-                <span>Contacted</span>
-                <strong>{counts.contacted}</strong>
-              </div>
+            <div className="tile-grid" role="tablist" aria-label="Lead status filters">
+              {STATUS_TILES.map((tile) => {
+                const active = statusFilter === tile.key;
+                return (
+                  <button
+                    key={tile.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    className={`tile ${active ? "is-active" : ""} ${tile.live ? "" : "is-soon"} ${tile.key === "sale" ? "tile-sale" : ""}`}
+                    onClick={() => setStatusFilter(tile.key)}
+                  >
+                    <div className="tile-top">
+                      <span className="tile-label">{tile.label}</span>
+                      {!tile.live && <span className="tile-badge">Soon</span>}
+                    </div>
+                    <span className="tile-count">{counts[tile.key] ?? 0}</span>
+                    <p className="tile-hint">{tile.hint}</p>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="toolbar">
@@ -219,13 +261,6 @@ export default function AdminDashboardPage() {
                 ariaLabel="Filter by type"
                 minWidth={180}
               />
-              <CustomSelect
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={statusFilterOptions}
-                ariaLabel="Filter by status"
-                minWidth={170}
-              />
             </div>
 
             {fetchError && (
@@ -234,21 +269,47 @@ export default function AdminDashboardPage() {
               </p>
             )}
 
+            <div className="list-head">
+              <h2>{activeTile?.label || "Leads"}</h2>
+              <span>
+                {loading && rows.length === 0
+                  ? "Loading…"
+                  : `${rows.length} lead${rows.length === 1 ? "" : "s"}`}
+              </span>
+            </div>
+
             <section className="panel">
               {loading && rows.length === 0 && <div className="empty">Loading…</div>}
-              {!loading && rows.length === 0 && <div className="empty">No enquiries found.</div>}
+              {!loading && rows.length === 0 && (
+                <div className="empty">
+                  {statusFilter === "sale" ||
+                  statusFilter === "pending" ||
+                  statusFilter === "disputed"
+                    ? "No leads in this payment stage yet — backend coming soon."
+                    : "No leads in this filter."}
+                </div>
+              )}
               {loading && rows.length > 0 && (
-                <p style={{ margin: 0, padding: "12px 28px", fontSize: 13, color: "#64748b", borderBottom: "1px solid #f1f5f9" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    padding: "12px 28px",
+                    fontSize: 13,
+                    color: "#64748b",
+                    borderBottom: "1px solid #f1f5f9",
+                  }}
+                >
                   Updating…
                 </p>
               )}
               {rows.map((row) => {
-                const meta = statusMeta(row.status);
+                const meta = statusMeta(row.status, row.enquiry_type);
+                const isSale = normalizePipelineStatus(row.status, row.enquiry_type) === "sale";
                 return (
                   <Link
                     key={row.id}
                     href={`/admin/enquiries/${row.id}`}
-                    className="row"
+                    className={`row ${isSale ? "row-sale" : ""}`}
                   >
                     <div className="row-top">
                       <div>
@@ -259,6 +320,8 @@ export default function AdminDashboardPage() {
                         <p className="row-line" style={{ marginTop: 6 }}>
                           {TYPE_LABELS[row.enquiry_type] || row.enquiry_type}
                           {row.product ? ` — ${row.product}` : ""}
+                          {" · "}
+                          {formatWhen(row.created_at)}
                         </p>
                       </div>
                       <div className="row-meta">

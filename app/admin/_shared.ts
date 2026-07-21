@@ -30,7 +30,55 @@ export const TYPE_LABELS: Record<string, string> = {
   contact: "Contact",
 };
 
-export const STATUS_OPTIONS = ["new", "in_progress", "contacted", "booked", "closed"] as const;
+/** Pipeline tags shown as dashboard filter tiles */
+export const STATUS_OPTIONS = [
+  "open",
+  "sale",
+  "pending",
+  "contact_us",
+  "disputed",
+] as const;
+
+export type PipelineStatus = (typeof STATUS_OPTIONS)[number];
+
+export const STATUS_TILES: Array<{
+  key: PipelineStatus;
+  label: string;
+  hint: string;
+  /** Backend writes this status today */
+  live: boolean;
+}> = [
+  {
+    key: "open",
+    label: "Open",
+    hint: "New website applications",
+    live: true,
+  },
+  {
+    key: "sale",
+    label: "Sale",
+    hint: "Payment — coming soon",
+    live: false,
+  },
+  {
+    key: "pending",
+    label: "Pending",
+    hint: "Payment — coming soon",
+    live: false,
+  },
+  {
+    key: "contact_us",
+    label: "Contact us",
+    hint: "Contact form messages",
+    live: true,
+  },
+  {
+    key: "disputed",
+    label: "Disputed & failed",
+    hint: "Payment — coming soon",
+    live: false,
+  },
+];
 
 const LABEL_MAP: Record<string, string> = {
   title: "Title",
@@ -79,7 +127,25 @@ const LABEL_MAP: Record<string, string> = {
   step: "Form step",
 };
 
-const HIDDEN_KEYS = new Set(["agreedToTerms", "trigger", "step"]);
+const HIDDEN_KEYS = new Set(["agreedToTerms", "trigger", "step", "staff_notes"]);
+
+/**
+ * Map DB row → pipeline tile.
+ * Legacy statuses (new / in_progress / …) count as Open.
+ * Contact-form rows count as Contact us.
+ */
+export function normalizePipelineStatus(
+  status: string,
+  enquiryType?: string | null
+): PipelineStatus {
+  if (status === "sale" || status === "pending" || status === "disputed" || status === "contact_us") {
+    return status;
+  }
+  if (status === "open") return "open";
+  if (enquiryType === "contact") return "contact_us";
+  // legacy: new, in_progress, contacted, booked, closed → open
+  return "open";
+}
 
 function humanLabel(key: string): string {
   if (LABEL_MAP[key]) return LABEL_MAP[key];
@@ -141,20 +207,21 @@ export function formatWhen(iso: string) {
   }
 }
 
-export function statusMeta(status: string) {
-  switch (status) {
-    case "new":
-      return { bg: "#dbeafe", color: "#1e3a8a", label: "New" };
-    case "in_progress":
-      return { bg: "#ffedd5", color: "#9a3412", label: "In progress" };
-    case "contacted":
-      return { bg: "#e0e7ff", color: "#312e81", label: "Contacted" };
-    case "booked":
-      return { bg: "#d1fae5", color: "#065f46", label: "Booked" };
-    case "closed":
-      return { bg: "#e2e8f0", color: "#334155", label: "Closed" };
+export function statusMeta(status: string, enquiryType?: string | null) {
+  const pipeline = normalizePipelineStatus(status, enquiryType);
+  switch (pipeline) {
+    case "open":
+      return { bg: "#e8eef8", color: "#1e3a5f", label: "Open", accent: "#1e3a5f" };
+    case "sale":
+      return { bg: "#a8d4b4", color: "#14351e", label: "Sale", accent: "#2f6b42" };
+    case "pending":
+      return { bg: "#f3e6dc", color: "#8a3d14", label: "Pending", accent: "#c45c26" };
+    case "contact_us":
+      return { bg: "#eceaf3", color: "#3d3560", label: "Contact us", accent: "#3d3560" };
+    case "disputed":
+      return { bg: "#f5e4e2", color: "#8a1f1b", label: "Disputed & failed", accent: "#8a1f1b" };
     default:
-      return { bg: "#f1f5f9", color: "#475569", label: status };
+      return { bg: "#eee", color: "#5c6573", label: status, accent: "#5c6573" };
   }
 }
 

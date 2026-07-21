@@ -75,7 +75,7 @@ export default function GroupBookingPage() {
       email: formData.email || null,
       company_name: formData.companyName || null,
       message: formData.message || null,
-      status: "new",
+      status: "open",
       agreed_to_terms: false,
       payload: {
         trigger: "form_submitted",

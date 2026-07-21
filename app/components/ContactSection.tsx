@@ -75,7 +75,7 @@ export default function ContactSection() {
       first_name: formData.name || null,
       email: formData.email || null,
       message: formData.message || null,
-      status: "new",
+      status: "contact_us",
       agreed_to_terms: false,
       payload: {
         trigger: "form_submitted",

@@ -122,7 +122,7 @@ function EasyApplyForm({
       last_name: formData.lastName,
       email: formData.emailAddress,
       phone: formData.phoneNumber,
-      status: "new",
+      status: "open",
       agreed_to_terms: false,
       payload: {
         trigger: "easy_apply",

@@ -167,7 +167,7 @@ export default function CardDetailPage({
       last_name: formData.lastName,
       email: formData.emailAddress,
       phone: formData.phoneNumber,
-      status: "in_progress",
+      status: "open",
       agreed_to_terms: false,
       payload: {
         trigger: "easy_apply",

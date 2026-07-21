@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { z } from "zod";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { syncEnquiry } from "@/lib/enquiries";
+import { getStoredEnquiryId, syncEnquiry } from "@/lib/enquiries";
+import { CSCS_CARD_PRICE_GBP } from "@/lib/cscs-pricing";
 import { isValidEmail, isValidPhone, isValidUkPostcode, normalizePostcode } from "@/lib/validation";
-import { Mail, Phone, Calendar, ClipboardCheck, ArrowLeft, Send, User, Truck, Lock, CheckCircle } from "lucide-react";
+import { Mail, Phone, Calendar, ClipboardCheck, ArrowLeft, Send, User, Truck, Lock, CheckCircle, Loader2 } from "lucide-react";
 
 // Define Zod Validation Schema
 const cscsFormSchema = z.object({
@@ -51,6 +52,8 @@ function ApplyCscsForm() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -78,6 +81,17 @@ function ApplyCscsForm() {
     postcode: "",
   });
   const [step2Errors, setStep2Errors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      setStep(4);
+      setPaymentError("");
+    } else if (payment === "cancelled") {
+      setStep(3);
+      setPaymentError("Payment was cancelled. You can try again when ready.");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const cardParam = searchParams.get("cardType");
@@ -194,7 +208,7 @@ function ApplyCscsForm() {
           last_name: updated.lastName || null,
           email: updated.emailAddress || null,
           phone: updated.phoneNumber || null,
-          status: "in_progress",
+          status: "open",
           agreed_to_terms: true,
           payload: {
             trigger: "terms_accepted",
@@ -268,7 +282,7 @@ function ApplyCscsForm() {
       last_name: formData.lastName || null,
       email: formData.emailAddress || null,
       phone: formData.phoneNumber || null,
-      status: "in_progress",
+      status: "open",
       agreed_to_terms: formData.agreedToTerms,
       payload: {
         trigger: "step_advance",
@@ -316,7 +330,7 @@ function ApplyCscsForm() {
       last_name: formData.lastName || null,
       email: formData.emailAddress || null,
       phone: formData.phoneNumber || null,
-      status: "in_progress",
+      status: "open",
       agreed_to_terms: true,
       payload: {
         trigger: "step_advance",
@@ -326,6 +340,71 @@ function ApplyCscsForm() {
       },
     });
     setStep(3);
+  };
+
+  const handleCardPayment = async () => {
+    setPaymentLoading(true);
+    setPaymentError("");
+
+    const product = formData.cardType || "CSCS Card";
+    const fullName = [
+      formData.title,
+      formData.firstName,
+      formData.middleName,
+      formData.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    await syncEnquiry({
+      enquiry_type: "cscs_card",
+      product,
+      source_path: "/apply-cscs",
+      title: formData.title || null,
+      first_name: formData.firstName || null,
+      middle_name: formData.middleName || null,
+      last_name: formData.lastName || null,
+      email: formData.emailAddress || null,
+      phone: formData.phoneNumber || null,
+      status: "pending",
+      agreed_to_terms: true,
+      payload: {
+        trigger: "checkout_started",
+        step: 3,
+        form: formData,
+        address: additionalData,
+        amount_gbp: CSCS_CARD_PRICE_GBP,
+      },
+    });
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checkoutType: "cscs_card",
+          email: formData.emailAddress,
+          fullName,
+          product,
+          enquiryId: getStoredEnquiryId() || undefined,
+          successPath: "/apply-cscs?payment=success",
+          cancelPath: "/apply-cscs?payment=cancelled",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.url) {
+        setPaymentError(
+          json.error || "Could not start payment. Please try again."
+        );
+        setPaymentLoading(false);
+        return;
+      }
+
+      window.location.href = json.url as string;
+    } catch {
+      setPaymentError("Network error starting payment. Please try again.");
+      setPaymentLoading(false);
+    }
   };
 
   const handleReset = () => {
@@ -1659,36 +1738,47 @@ function ApplyCscsForm() {
 
                       {/* Right panel (Sidebar buttons) */}
                       <div className="step3-sidebar">
+                        <div style={{ marginBottom: "16px", textAlign: "center" }}>
+                          <span style={{ display: "block", fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
+                            Total amount
+                          </span>
+                          <strong style={{ fontSize: "24px", color: "#0f172a" }}>
+                            £{CSCS_CARD_PRICE_GBP.toFixed(2)}
+                          </strong>
+                        </div>
+                        {paymentError && (
+                          <p
+                            role="alert"
+                            style={{
+                              color: "#dc2626",
+                              fontSize: "13px",
+                              lineHeight: 1.45,
+                              margin: "0 0 14px",
+                            }}
+                          >
+                            {paymentError}
+                          </p>
+                        )}
                         <button 
-                          onClick={() => {
-                            void syncEnquiry({
-                              enquiry_type: "cscs_card",
-                              product: formData.cardType || "CSCS Card",
-                              source_path: "/apply-cscs",
-                              title: formData.title || null,
-                              first_name: formData.firstName || null,
-                              middle_name: formData.middleName || null,
-                              last_name: formData.lastName || null,
-                              email: formData.emailAddress || null,
-                              phone: formData.phoneNumber || null,
-                              status: "new",
-                              agreed_to_terms: true,
-                              payload: {
-                                trigger: "form_submitted",
-                                step: 4,
-                                form: formData,
-                                address: additionalData,
-                              },
-                            });
-                            setStep(4);
-                          }} 
+                          type="button"
+                          onClick={() => void handleCardPayment()}
                           className="step3-btn-pay"
+                          disabled={paymentLoading}
                         >
-                          Confirm and Pay
+                          {paymentLoading ? (
+                            <>
+                              <Loader2 className="animate-spin" size={16} />
+                              Redirecting to Stripe...
+                            </>
+                          ) : (
+                            <>Confirm and Pay £{CSCS_CARD_PRICE_GBP.toFixed(2)}</>
+                          )}
                         </button>
                         <button 
+                          type="button"
                           onClick={() => setStep(1)} 
                           className="step3-btn-update"
+                          disabled={paymentLoading}
                         >
                           Update Details
                         </button>

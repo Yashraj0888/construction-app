@@ -7,8 +7,13 @@ import { z } from "zod";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import DatePickerField from "../components/DatePickerField";
-import { syncEnquiry } from "@/lib/enquiries";
+import { syncEnquiry, getStoredEnquiryId } from "@/lib/enquiries";
 import { isValidEmail, isValidPhone, isValidUkPostcode, normalizePostcode } from "@/lib/validation";
+import {
+  CITB_BASE_PRICE_GBP,
+  CITB_MULTI_TEST_ADDON_GBP,
+  citbTotalGbp,
+} from "@/lib/citb-pricing";
 import { 
   Lock, 
   CheckCircle, 
@@ -122,9 +127,25 @@ function BookCitbTestForm() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [payError, setPayError] = useState("");
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const bookingTotal = citbTotalGbp(testDetails.optInRetake);
+
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      setStep(4);
+      sessionStorage.removeItem("cscs_temp_citb_test_data");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (payment === "cancelled") {
+      setStep(3);
+      setPayError("Payment was cancelled. You can try again when ready.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
   // Resolve real lat/lng for all centres (batched, respects 100-item API limit)
@@ -171,7 +192,7 @@ function BookCitbTestForm() {
           last_name: updated.lastName || null,
           email: updated.emailAddress || null,
           phone: updated.phoneNumber || null,
-          status: "in_progress",
+          status: "open",
           agreed_to_terms: true,
           payload: {
             trigger: "terms_accepted",
@@ -312,7 +333,7 @@ function BookCitbTestForm() {
       last_name: formData.lastName || null,
       email: formData.emailAddress || null,
       phone: formData.phoneNumber || null,
-      status: "in_progress",
+      status: "open",
       agreed_to_terms: true,
       payload: {
         trigger: "step_advance",
@@ -367,7 +388,7 @@ function BookCitbTestForm() {
       last_name: normalizedForm.lastName || null,
       email: normalizedForm.emailAddress || null,
       phone: normalizedForm.phoneNumber || null,
-      status: "in_progress",
+      status: "open",
       agreed_to_terms: true,
       payload: {
         trigger: "step_advance",
@@ -379,13 +400,20 @@ function BookCitbTestForm() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleFinalConfirm = () => {
+  const handleFinalConfirm = async () => {
     setLoading(true);
-    void syncEnquiry({
+    setPayError("");
+
+    const product = testDetails.testType
+      ? `CITB Test - ${testDetails.testType}`
+      : "CITB Health Safety & Environment Test";
+    const fullName = [formData.title, formData.firstName, formData.middleName, formData.lastName]
+      .filter(Boolean)
+      .join(" ");
+
+    await syncEnquiry({
       enquiry_type: "citb_test",
-      product: testDetails.testType
-        ? `CITB Test - ${testDetails.testType}`
-        : "CITB Health Safety & Environment Test",
+      product,
       source_path: "/book-citb-test",
       title: formData.title || null,
       first_name: formData.firstName || null,
@@ -393,22 +421,44 @@ function BookCitbTestForm() {
       last_name: formData.lastName || null,
       email: formData.emailAddress || null,
       phone: formData.phoneNumber || null,
-      status: "new",
+      status: "pending",
       agreed_to_terms: true,
       payload: {
-        trigger: "form_submitted",
-        step: 4,
+        trigger: "checkout_started",
+        step: 3,
         form: formData,
         testDetails,
+        amount_gbp: bookingTotal,
+        multi_test: testDetails.optInRetake,
       },
-    }).finally(() => {
-      setTimeout(() => {
-        setLoading(false);
-        setStep(4);
-        sessionStorage.removeItem("cscs_temp_citb_test_data");
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }, 600);
     });
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checkoutType: "citb_test",
+          email: formData.emailAddress,
+          fullName,
+          product,
+          multiTest: testDetails.optInRetake,
+          enquiryId: getStoredEnquiryId() || undefined,
+          successPath: "/book-citb-test?payment=success",
+          cancelPath: "/book-citb-test?payment=cancelled",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.url) {
+        setPayError(json.error || "Could not start payment. Please try again.");
+        setLoading(false);
+        return;
+      }
+      window.location.href = json.url as string;
+    } catch {
+      setPayError("Network error starting payment. Please try again.");
+      setLoading(false);
+    }
   };
 
   const faqs: FAQItem[] = [
@@ -796,18 +846,22 @@ function BookCitbTestForm() {
           }
 
           .summary-item-label {
+            display: block;
             font-size: 12px;
-            font-weight: 800;
-            color: #64748b;
+            font-weight: 700;
+            color: #0f172a;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
           }
 
           .summary-item-value {
+            display: block;
             font-size: 15px;
             color: #0f172a;
-            font-weight: 700;
+            font-weight: 400;
+            line-height: 1.4;
+            word-break: break-word;
           }
 
           .payment-breakdown {
@@ -849,7 +903,7 @@ function BookCitbTestForm() {
           <div className="disclaimer-box">
             <ShieldCheck size={20} className="text-blue-600 flex-shrink-0" style={{ marginTop: "2px" }} />
             <div>
-              The CITB HS&amp;E test (commonly known as a CITB Touch Screen Test), is required for a CSCS Card (New/Renew). The price of a CITB HS&amp;E Test is <strong>£23.50</strong>. You must have passed this test within the past two years in order to apply for a CSCS Card.
+              The CITB HS&amp;E test (commonly known as a CITB Touch Screen Test), is required for a CSCS Card (New/Renew). The price of a CITB HS&amp;E Test booking is <strong>£{CITB_BASE_PRICE_GBP}</strong>. You must have passed this test within the past two years in order to apply for a CSCS Card.
             </div>
           </div>
 
@@ -1384,7 +1438,7 @@ function BookCitbTestForm() {
                   )}
                 </div>
 
-                {/* Retake Opt-in */}
+                {/* Multi-test / retake Opt-in */}
                 <label style={{ display: "flex", gap: "10px", alignItems: "flex-start", cursor: "pointer", fontSize: "14px", color: "#475569" }}>
                   <input
                     type="checkbox"
@@ -1392,7 +1446,12 @@ function BookCitbTestForm() {
                     onChange={e => setTestDetails(p => ({ ...p, optInRetake: e.target.checked }))}
                     style={{ marginTop: "3px", width: "16px", height: "16px", cursor: "pointer" }}
                   />
-                  <span>Opt in for retake <em style={{ fontSize: "12px", color: "#94a3b8" }}>(*Additional charges applicable)</em></span>
+                  <span>
+                    Book multiple tests / include a retake{" "}
+                    <em style={{ fontSize: "12px", color: "#94a3b8" }}>
+                      (+£{CITB_MULTI_TEST_ADDON_GBP})
+                    </em>
+                  </span>
                 </label>
               </div>
 
@@ -1449,18 +1508,26 @@ function BookCitbTestForm() {
               <div className="payment-breakdown">
                 <h3 style={{ fontWeight: 800, fontSize: "15px", color: "#0f172a", marginBottom: "16px" }}>Booking Fees</h3>
                 <div className="breakdown-row">
-                  <span>CITB HS&amp;E Test Fee</span>
-                  <span>£23.50</span>
+                  <span>CITB HS&amp;E Test Booking</span>
+                  <span>£{CITB_BASE_PRICE_GBP.toFixed(2)}</span>
                 </div>
-                <div className="breakdown-row">
-                  <span>Booking &amp; Administration Fee</span>
-                  <span>£21.50</span>
-                </div>
+                {testDetails.optInRetake && (
+                  <div className="breakdown-row">
+                    <span>Multiple tests / retake</span>
+                    <span>£{CITB_MULTI_TEST_ADDON_GBP.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="breakdown-row total">
                   <span>Total Amount</span>
-                  <span>£45.00</span>
+                  <span>£{bookingTotal.toFixed(2)}</span>
                 </div>
               </div>
+
+              {payError && (
+                <p className="error-msg" style={{ marginBottom: "16px", display: "block" }}>
+                  {payError}
+                </p>
+              )}
 
               <div className="action-bar">
                 <button type="button" onClick={() => setStep(2)} className="btn-back">
@@ -1468,7 +1535,7 @@ function BookCitbTestForm() {
                 </button>
                 <button 
                   type="button" 
-                  onClick={handleFinalConfirm} 
+                  onClick={() => void handleFinalConfirm()} 
                   className="btn-proceed" 
                   disabled={loading}
                   style={{ background: "#2563eb" }}
@@ -1476,12 +1543,12 @@ function BookCitbTestForm() {
                   {loading ? (
                     <>
                       <Loader2 className="animate-spin" size={16} />
-                      <span>Processing...</span>
+                      <span>Redirecting to Stripe...</span>
                     </>
                   ) : (
                     <>
                       <Lock size={16} />
-                      <span>Confirm and Pay</span>
+                      <span>Confirm and Pay £{bookingTotal.toFixed(2)}</span>
                     </>
                   )}
                 </button>
