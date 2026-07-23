@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Mail, MapPin, Phone, RotateCw, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
+import { Mail, MapPin, Send } from "lucide-react";
 import { z } from "zod";
-import { createEnquiry } from "@/lib/enquiries";
 import { isValidEmail } from "@/lib/validation";
 
 const contactSchema = z.object({
@@ -18,11 +18,34 @@ const contactSchema = z.object({
   message: z.string().min(10, { message: "Message must be at least 10 characters." }),
 });
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        el: HTMLElement,
+        opts: {
+          sitekey: string;
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+        }
+      ) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId?: string) => void;
+    };
+  }
+}
+
 export default function ContactSection() {
-  const [captchaText, setCaptchaText] = useState("");
-  const [captchaInput, setCaptchaInput] = useState("");
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+  const widgetRef = useRef<HTMLDivElement | null>(null);
+  const widgetIdRef = useRef<string | null>(null);
+
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [scriptReady, setScriptReady] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -31,27 +54,42 @@ export default function ContactSection() {
     message: "",
   });
 
-  const generateCaptcha = () => {
-    const chars = "23456789abcdefghkmnpqrstuvwxyzABCDEFGHKMNPQRSTUVWXYZ";
-    let result = "";
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+  const resetTurnstile = () => {
+    setTurnstileToken("");
+    if (widgetIdRef.current && window.turnstile) {
+      window.turnstile.reset(widgetIdRef.current);
     }
-    setCaptchaText(result);
-    setErrorMessage("");
   };
 
   useEffect(() => {
-    generateCaptcha();
-  }, []);
+    if (!scriptReady || !siteKey || !widgetRef.current || !window.turnstile) return;
+    if (widgetIdRef.current) return;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    widgetIdRef.current = window.turnstile.render(widgetRef.current, {
+      sitekey: siteKey,
+      callback: (token) => setTurnstileToken(token),
+      "expired-callback": () => setTurnstileToken(""),
+      "error-callback": () => setTurnstileToken(""),
+    });
+
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        window.turnstile.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+      }
+    };
+  }, [scriptReady, siteKey, formSubmitted]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
 
     const validation = contactSchema.safeParse(formData);
     if (!validation.success) {
@@ -59,36 +97,52 @@ export default function ContactSection() {
       return;
     }
 
-    if (captchaInput.toLowerCase() !== captchaText.toLowerCase()) {
-      setErrorMessage("Incorrect captcha text. Please try again.");
-      generateCaptcha();
-      setCaptchaInput("");
+    if (!turnstileToken) {
+      setErrorMessage("Wrong CAPTCHA");
       return;
     }
 
-    setFormSubmitted(true);
-    setErrorMessage("");
-    void createEnquiry({
-      enquiry_type: "contact",
-      product: formData.subject || "Contact form",
-      source_path: "/#contact",
-      first_name: formData.name || null,
-      email: formData.email || null,
-      message: formData.message || null,
-      status: "contact_us",
-      agreed_to_terms: false,
-      payload: {
-        trigger: "form_submitted",
-        subject: formData.subject,
-      },
-    });
-    setFormData({ name: "", email: "", subject: "", message: "" });
-    setCaptchaInput("");
-    generateCaptcha();
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          turnstileToken,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorMessage(json.error || "Wrong CAPTCHA");
+        resetTurnstile();
+        setSubmitting(false);
+        return;
+      }
+
+      setFormSubmitted(true);
+      setFormData({ name: "", email: "", subject: "", message: "" });
+      resetTurnstile();
+    } catch {
+      setErrorMessage("Network error. Please try again.");
+      resetTurnstile();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
-    <section id="contact" className="bg-white border-t border-slate-200" style={{ paddingTop: "85px", paddingBottom: "85px" }}>
+    <section
+      id="contact"
+      className="bg-white border-t border-slate-200"
+      style={{ paddingTop: "85px", paddingBottom: "85px" }}
+    >
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={() => setScriptReady(true)}
+      />
+
       <style>{`
         .contact-layout {
           max-width: 1024px;
@@ -104,12 +158,7 @@ export default function ContactSection() {
             align-items: start;
           }
         }
-        
-        /* Left Column Styles */
-        .info-col {
-          display: flex;
-          flex-direction: column;
-        }
+        .info-col { display: flex; flex-direction: column; }
         .contact-pre {
           font-size: 13px;
           text-transform: uppercase;
@@ -125,19 +174,8 @@ export default function ContactSection() {
           margin-bottom: 36px;
           line-height: 1.25;
         }
-        
-        .info-cards {
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-        }
-        
-        .info-item {
-          display: flex;
-          gap: 20px;
-          align-items: flex-start;
-        }
-        
+        .info-cards { display: flex; flex-direction: column; gap: 32px; }
+        .info-item { display: flex; gap: 20px; align-items: flex-start; }
         .info-icon-wrapper {
           width: 48px;
           height: 48px;
@@ -150,7 +188,6 @@ export default function ContactSection() {
           color: #0f172a;
           flex-shrink: 0;
         }
-        
         .info-details h3 {
           font-size: 18px;
           font-weight: 700;
@@ -165,16 +202,8 @@ export default function ContactSection() {
           display: block;
           line-height: 1.5;
         }
-        .info-link:hover {
-          color: #2563eb;
-        }
-        .info-text {
-          font-size: 15px;
-          color: #475569;
-          line-height: 1.6;
-        }
-        
-        /* Form Card Styles */
+        .info-link:hover { color: #2563eb; }
+        .info-text { font-size: 15px; color: #475569; line-height: 1.6; }
         .form-card {
           background: #ffffff;
           border: 1px solid #e2e8f0;
@@ -188,7 +217,6 @@ export default function ContactSection() {
           color: #0f172a;
           margin-bottom: 24px;
         }
-        
         .form-fields-grid {
           display: grid;
           grid-template-columns: 1fr;
@@ -202,11 +230,7 @@ export default function ContactSection() {
             gap: 20px;
           }
         }
-        
-        .input-group {
-          display: flex;
-          flex-direction: column;
-        }
+        .input-group { display: flex; flex-direction: column; }
         .input-field {
           width: 100%;
           padding: 12px 16px;
@@ -223,66 +247,14 @@ export default function ContactSection() {
           border-color: #2563eb;
           box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
         }
-        .input-field::placeholder {
-          color: #94a3b8;
-        }
-        
-        /* Captcha Styling */
-        .captcha-box-container {
-          display: flex;
-          gap: 16px;
-          align-items: center;
-          margin-bottom: 24px;
-          flex-wrap: wrap;
-        }
-        .captcha-image-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          background: #f8fafc;
-          border: 1px dashed #cbd5e1;
-          padding: 8px 16px;
-          border-radius: 12px;
-          user-select: none;
-          flex-shrink: 0;
-        }
-        .captcha-code {
-          font-family: 'Courier New', Courier, monospace;
-          font-size: 20px;
-          font-weight: 800;
-          color: #0f172a;
-          letter-spacing: 0.15em;
-          text-decoration: line-through;
-          font-style: italic;
-          background: linear-gradient(90deg, #334155, #64748b);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-        .captcha-refresh-btn {
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          color: #64748b;
-          padding: 6px;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-        }
-        .captcha-refresh-btn:hover {
-          color: #0f172a;
-          background-color: #e2e8f0;
-          transform: rotate(30deg);
-        }
-        
+        .input-field::placeholder { color: #94a3b8; }
+        .turnstile-wrap { margin-bottom: 20px; min-height: 65px; }
         .error-msg {
           font-size: 14px;
           font-weight: 600;
           color: #ef4444;
           margin-bottom: 20px;
         }
-        
         .success-msg {
           background: #ecfdf5;
           border: 1px solid #a7f3d0;
@@ -293,7 +265,6 @@ export default function ContactSection() {
           font-weight: 600;
           margin-bottom: 24px;
         }
-        
         .submit-btn {
           width: 100%;
           padding: 14px 28px;
@@ -310,36 +281,41 @@ export default function ContactSection() {
           gap: 8px;
           transition: all 0.2s ease;
         }
-        .submit-btn:hover {
-          background: #2563eb;
-          color: #ffffff;
-        }
+        .submit-btn:hover { background: #2563eb; color: #ffffff; }
+        .submit-btn:disabled { opacity: 0.65; cursor: not-allowed; }
       `}</style>
 
       <div className="contact-layout">
-        {/* Left Column: Heading and Details */}
         <div className="info-col">
           <div className="contact-pre">Contact Us</div>
-          <h2 className="contact-title">Let's get your queries answered</h2>
-          
+          <h2 className="contact-title">Let&apos;s get your queries answered</h2>
+
           <div className="info-cards">
-            {/* Say Hello */}
             <div className="info-item">
               <div className="info-icon-wrapper">
                 <Mail size={22} />
               </div>
               <div className="info-details">
                 <h3>Say hello</h3>
-                <a href="mailto:support@constructioncardassistance.co.uk" className="info-link">
+                <a
+                  href="mailto:support@constructioncardassistance.co.uk"
+                  className="info-link"
+                >
                   support@constructioncardassistance.co.uk
                 </a>
-                <a href="tel:+441135199938" className="info-link" style={{ marginTop: "4px" }}>
-                  +44 113 519 9938 <span style={{ color: "#64748b", fontSize: "13px" }}>(Mon-Fri, 9am-5pm)</span>
+                <a
+                  href="tel:+441135199938"
+                  className="info-link"
+                  style={{ marginTop: "4px" }}
+                >
+                  +44 113 519 9938{" "}
+                  <span style={{ color: "#64748b", fontSize: "13px" }}>
+                    (Mon-Fri, 9am-5pm)
+                  </span>
                 </a>
               </div>
             </div>
 
-            {/* Location */}
             <div className="info-item">
               <div className="info-icon-wrapper">
                 <MapPin size={22} />
@@ -347,8 +323,10 @@ export default function ContactSection() {
               <div className="info-details">
                 <h3>Location</h3>
                 <div className="info-text">
-                  14 King Street, International House<br />
-                  Leeds, LS1 2HL<br />
+                  14 King Street, International House
+                  <br />
+                  Leeds, LS1 2HL
+                  <br />
                   United Kingdom
                 </div>
               </div>
@@ -356,23 +334,29 @@ export default function ContactSection() {
           </div>
         </div>
 
-        {/* Right Column: Form Container */}
         <div className="form-card">
           <h3 className="form-header">Raise A Query/Complaint</h3>
 
           {formSubmitted ? (
             <div className="success-msg">
-              Thank you! Your query has been successfully submitted. We will get back to you shortly.
-              <button 
+              Thank you! Your query has been successfully submitted. We will get
+              back to you shortly.
+              <button
+                type="button"
                 onClick={() => setFormSubmitted(false)}
-                className="submit-btn" 
-                style={{ marginTop: "16px", padding: "10px 20px", fontSize: "14px", width: "auto" }}
+                className="submit-btn"
+                style={{
+                  marginTop: "16px",
+                  padding: "10px 20px",
+                  fontSize: "14px",
+                  width: "auto",
+                }}
               >
                 Send Another Message
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={(e) => void handleSubmit(e)}>
               {errorMessage && <div className="error-msg">{errorMessage}</div>}
 
               <div className="form-fields-grid">
@@ -422,37 +406,23 @@ export default function ContactSection() {
                     className="input-field"
                     style={{ resize: "none", fontFamily: "inherit" }}
                     required
-                  ></textarea>
-                </div>
-              </div>
-
-              {/* Captcha Block */}
-              <div className="captcha-box-container">
-                <div className="captcha-image-wrapper">
-                  <span className="captcha-code">{captchaText}</span>
-                  <button 
-                    type="button" 
-                    onClick={generateCaptcha} 
-                    className="captcha-refresh-btn"
-                    title="Refresh verification code"
-                  >
-                    <RotateCw size={16} />
-                  </button>
-                </div>
-                <div style={{ flexGrow: 1, minWidth: "150px" }}>
-                  <input
-                    type="text"
-                    placeholder="Word Verification"
-                    value={captchaInput}
-                    onChange={(e) => setCaptchaInput(e.target.value)}
-                    className="input-field"
-                    required
                   />
                 </div>
               </div>
 
-              <button type="submit" className="submit-btn">
-                <span>Submit</span>
+              <div className="turnstile-wrap">
+                {siteKey ? (
+                  <div ref={widgetRef} />
+                ) : (
+                  <p className="error-msg" style={{ marginBottom: 0 }}>
+                    CAPTCHA is not configured. Add NEXT_PUBLIC_TURNSTILE_SITE_KEY
+                    to .env.
+                  </p>
+                )}
+              </div>
+
+              <button type="submit" className="submit-btn" disabled={submitting}>
+                <span>{submitting ? "Submitting…" : "Submit"}</span>
                 <Send size={16} />
               </button>
             </form>

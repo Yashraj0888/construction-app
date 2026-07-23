@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidUkPostcode, normalizePostcode } from "@/lib/validation";
+import { clientIp, rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 const enquirySchema = z.object({
   id: z.string().uuid().optional(),
@@ -74,6 +75,14 @@ function pickRow(data: z.infer<typeof enquirySchema>, payload: Record<string, un
 }
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit({
+    key: `enquiries:${ip}`,
+    limit: 30,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitedResponse(limited.retryAfterSec);
+
   try {
     const body = await req.json();
     const parsed = enquirySchema.safeParse(body);
@@ -114,6 +123,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit({
+    key: `enquiries-patch:${ip}`,
+    limit: 60,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitedResponse(limited.retryAfterSec);
+
   try {
     const body = await req.json();
     const parsed = enquirySchema.extend({ id: z.string().uuid() }).safeParse(body);

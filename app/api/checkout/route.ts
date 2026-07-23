@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getStripe } from "@/lib/stripe";
 import { citbTotalPence } from "@/lib/citb-pricing";
 import { cscsCardPricePence } from "@/lib/cscs-pricing";
+import { clientIp, rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 const schema = z.object({
   checkoutType: z.enum(["citb_test", "cscs_card"]),
@@ -16,6 +17,14 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit({
+    key: `checkout:${ip}`,
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitedResponse(limited.retryAfterSec);
+
   try {
     const parsed = schema.safeParse(await req.json());
     if (!parsed.success) {

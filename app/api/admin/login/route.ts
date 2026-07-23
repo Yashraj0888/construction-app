@@ -1,7 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_COOKIE, getAdminPassword } from "@/lib/admin-auth";
+import {
+  ADMIN_COOKIE,
+  adminCookieOptions,
+  createAdminSessionToken,
+  getAdminPassword,
+} from "@/lib/admin-auth";
+import { clientIp, rateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const limited = rateLimit({
+    key: `admin-login:${ip}`,
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!limited.ok) return rateLimitedResponse(limited.retryAfterSec);
+
   const password = getAdminPassword();
   if (!password) {
     return NextResponse.json(
@@ -16,22 +30,12 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, password, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  res.cookies.set(ADMIN_COOKIE, createAdminSessionToken(), adminCookieOptions());
   return res;
 }
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, "", {
-    httpOnly: true,
-    path: "/",
-    maxAge: 0,
-  });
+  res.cookies.set(ADMIN_COOKIE, "", adminCookieOptions(0));
   return res;
 }
